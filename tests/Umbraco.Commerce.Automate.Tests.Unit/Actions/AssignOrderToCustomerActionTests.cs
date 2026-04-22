@@ -1,0 +1,40 @@
+using Umbraco.Automate.Core.Actions;
+using Umbraco.Automate.Core.Runs;
+using Umbraco.Automate.Testing;
+using Umbraco.Commerce.Automate.Actions;
+using Umbraco.Commerce.Common;
+using Umbraco.Commerce.Core.Services;
+
+namespace Umbraco.Commerce.Automate.Tests.Unit.Actions;
+
+public class AssignOrderToCustomerActionTests
+{
+    private readonly Mock<IOrderService> _orderService = new();
+    private readonly Mock<IUnitOfWorkProvider> _uowProvider = new();
+
+    [Fact]
+    public async Task InvalidOrderId_ReturnsValidationError()
+    {
+        var result = await ActionTestHarness.For<AssignOrderToCustomerAction>()
+            .WithService(_orderService.Object)
+            .WithService(_uowProvider.Object)
+            .WithSettings(new AssignOrderToCustomerSettings { OrderId = "not-a-guid", CustomerReference = "cust-1" })
+            .ExecuteAsync();
+
+        result.Status.ShouldBe(ActionResultStatus.Failed);
+        result.ErrorCategory.ShouldBe(StepRunErrorCategory.Validation);
+    }
+
+    [Fact]
+    public async Task EmptyCustomerReference_ReturnsValidationError()
+    {
+        var result = await ActionTestHarness.For<AssignOrderToCustomerAction>()
+            .WithService(_orderService.Object)
+            .WithService(_uowProvider.Object)
+            .WithSettings(new AssignOrderToCustomerSettings { OrderId = Guid.NewGuid().ToString(), CustomerReference = "" })
+            .ExecuteAsync();
+
+        result.Status.ShouldBe(ActionResultStatus.Failed);
+        result.ErrorCategory.ShouldBe(StepRunErrorCategory.Validation);
+    }
+}

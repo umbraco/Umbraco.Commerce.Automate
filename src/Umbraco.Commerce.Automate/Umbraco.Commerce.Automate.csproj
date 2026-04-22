@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Title>Umbraco Commerce Automate</Title>
+        <Description>Umbraco Commerce triggers and actions for Umbraco Automate</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Umbraco.Automate.Core" />
+        <PackageReference Include="Umbraco.Commerce.Cms.Startup" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Umbraco.Commerce.Automate.Tests.Unit" />
+    </ItemGroup>
+
+</Project>
