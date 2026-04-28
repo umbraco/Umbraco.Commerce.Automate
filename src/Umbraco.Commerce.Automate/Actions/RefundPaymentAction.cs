@@ -13,7 +13,7 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.refundPayment", "Refund Payment",
     Description = "Refunds the payment on a Commerce order via the payment provider.",
     Group = "Commerce",
-    Icon = "icon-reset")]
+    Icon = "icon-undo")]
 public sealed class RefundPaymentAction : ActionBase<RefundPaymentSettings, RefundPaymentOutput>
 {
     private readonly IOrderService _orderService;

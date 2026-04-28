@@ -81,7 +81,28 @@ The `CommerceAutomateComposer` auto-registers with Umbraco's composition pipelin
 
 - `src/Umbraco.Commerce.Automate` — the package
 - `tests/Umbraco.Commerce.Automate.Tests.Unit` — unit tests for triggers, actions, and bridge handlers
-- `demo/Umbraco.Commerce.Automate.DemoSite` — runnable demo site
+- `setup-demo.ps1` — scaffolds a runnable demo site under `demo/` (git-ignored)
+
+## Running the demo
+
+The demo is not committed to this repo. To scaffold one locally:
+
+```pwsh
+./setup-demo.ps1
+```
+
+This clones the official [Umbraco Commerce demo store](https://github.com/umbraco/Umbraco.Commerce.DemoStore) into `./demo`, adds a project reference from the demo's web project to the local `Umbraco.Commerce.Automate`, and generates `Umbraco.Commerce.Automate.local.slnx` at the repo root combining src + tests + the demo. Both `demo/` and `*.local.slnx` are git-ignored.
+
+Useful parameters:
+
+- `-Branch <ref>` — branch, tag, or commit of the demo store to check out (default `main`)
+- `-Path <dir>` — target folder (default `demo`)
+- `-Repo <url>` — alternate demo store repo
+- `-DemoSubPath <path>` — path within the cloned repo that contains the demo solution (defaults to the repo root)
+- `-WebProject <csproj>` — explicit web project to reference Automate from (auto-detected by default)
+- `-Force` — wipe and re-clone an existing demo folder
+
+Run `./setup-demo.ps1 -?` for full help.
 
 ## License
 

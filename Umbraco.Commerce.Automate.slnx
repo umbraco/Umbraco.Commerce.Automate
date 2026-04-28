@@ -5,8 +5,4 @@
   <Folder Name="/tests/">
     <Project Path="tests/Umbraco.Commerce.Automate.Tests.Unit/Umbraco.Commerce.Automate.Tests.Unit.csproj" />
   </Folder>
-  <Folder Name="/demo/">
-    <Project Path="demo/Umbraco.Commerce.Automate.DemoSite/Umbraco.Commerce.Automate.DemoSite.csproj" />
-    <Project Path="demo/Umbraco.Commerce.DemoStore/Umbraco.Commerce.DemoStore.csproj" />
-  </Folder>
 </Solution>

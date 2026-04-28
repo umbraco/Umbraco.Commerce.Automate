@@ -11,7 +11,7 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.removeTagsFromOrder", "Remove Tags from Order",
     Description = "Removes tags from a Commerce order.",
     Group = "Commerce",
-    Icon = "icon-tag-remove")]
+    Icon = "icon-tags")]
 public sealed class RemoveTagsFromOrderAction : ActionBase<RemoveTagsFromOrderSettings, RemoveTagsFromOrderOutput>
 {
     private readonly IOrderService _orderService;

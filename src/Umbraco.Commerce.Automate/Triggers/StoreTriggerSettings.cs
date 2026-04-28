@@ -12,6 +12,7 @@ public sealed class StoreTriggerSettings
     /// </summary>
     [Field(
         Label = "Store",
-        Description = "Only fire for this store. Leave blank to match all stores.")]
+        Description = "Only fire for this store. Leave blank to match all stores.",
+        EditorUiAlias = "Uc.PropertyEditorUi.StorePicker")]
     public string? StoreId { get; set; }
 }
