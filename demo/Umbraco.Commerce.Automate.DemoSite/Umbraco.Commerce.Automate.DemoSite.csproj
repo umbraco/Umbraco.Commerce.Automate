@@ -7,11 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Clean" Version="7.0.5" />
+    <PackageReference Include="Flurl.Http" Version="4.0.2" />
     <PackageReference Include="Umbraco.Cms" Version="17.2.2" />
     <PackageReference Include="Umbraco.Cms.DevelopmentMode.Backoffice" Version="17.2.2" />
     <PackageReference Include="Umbraco.Automate" Version="0.1.0-*" />
     <PackageReference Include="Umbraco.Commerce" Version="17.0.0-*" />
+    <PackageReference Include="Umbraco.Commerce.PaymentProviders.Stripe" Version="17.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Umbraco.Commerce.Automate\Umbraco.Commerce.Automate.csproj" />
+    <ProjectReference Include="..\Umbraco.Commerce.DemoStore\Umbraco.Commerce.DemoStore.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
