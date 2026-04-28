@@ -1,0 +1,207 @@
+@using Umbraco.Commerce.Core.Models;
+@using Umbraco.Commerce.DemoStore.Models;
+@using Umbraco.Cms.Core.Models.PublishedContent;
+@using Umbraco.Commerce.Core.Api
+@using Umbraco.Commerce.DemoStore
+@using Umbraco.Commerce.Extensions;
+@inject IUmbracoCommerceApi UmbracoCommerceApi;
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<ICheckoutStepPage>
+@{
+    Layout = "Layout.cshtml";
+    
+    var store = Model.GetStore();
+    var order = await Model.GetCurrentOrderAsync();
+    var paymentMethodId = order?.PaymentInfo?.PaymentMethodId;
+    var paymentMethod = paymentMethodId.HasValue
+        ? await UmbracoCommerceApi.GetPaymentMethodAsync(paymentMethodId.Value)
+        : null;
+    var shippingMethodId = order?.ShippingInfo?.ShippingMethodId;
+    var shippingMethod =  shippingMethodId.HasValue
+        ? await UmbracoCommerceApi.GetShippingMethodAsync(shippingMethodId.Value)
+        : null;
+    
+    var checkoutPage = Model.GetCheckoutPage();
+    var checkoutStepPages = checkoutPage?.Children().OfType<ICheckoutStepPage>().ToList() ?? [];
+
+    var storeImageUrl = store?.LogoImageUrl;
+}
+
+@section head {
+    @RenderSection("head", false)
+}
+
+@section foot {
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
+    <script src="/scripts/checkout.js"></script>
+    @RenderSection("foot", false)
+}
+
+<div class="relative text-sm">
+
+    <!-- Faux column -->
+    <div class="absolute right-0 w-1/2 h-full lg:bg-gray-100"></div>
+
+    <!-- Layout -->
+    <div class="relative flex flex-col min-h-full max-w-6xl mx-auto lg:flex-row-reverse lg:flex-row">
+
+        @if (!string.IsNullOrWhiteSpace(storeImageUrl))
+        {
+            <div class="bg-white p-8 text-center lg:hidden">
+                <a href="/"><img src="@(storeImageUrl.GetCropUrl(200))" class="inline-block" /></a>
+            </div>
+        }
+
+        <a id="order-summary-toggle" href="#" class="flex items-center justify-between border-t border-b border-gray-300 bg-gray-100 lg:hidden">
+            <span class="py-4 px-8 text-lg">
+                <span id="order-summary-toggle__text-closed"><i class="fa fa-shopping-cart mr-2"></i> Show Order Summary <i class="fa fa-angle-down ml-1"></i></span>
+                <span id="order-summary-toggle__text-open" class="hidden"><i class="fa fa-shopping-cart mr-2"></i> Hide Order Summary <i class="fa fa-angle-up ml-1"></i></span>
+            </span>
+            <span class="py-4 px-8 text-lg font-medium">@await order.TotalPrice.Value.FormattedAsync(x => x.WithoutTax)</span>
+        </a>
+
+        <div id="order-summary" class="hidden bg-gray-100 w-full p-8 lg:w-2/5 lg:border-l lg:block">
+
+            <ul>
+                @foreach (var orderLine in order.OrderLines)
+                {
+                    <li class="border-b border-gray-300 pb-4 mb-4">
+                        <div class="flex items-center">
+
+                            <div class="flex flex-1 items-center">
+                                @*<img src="https://placehold.it/65" class="mr-4 rounded" />*@
+                                <span class="bg-gray-300 h-12 w-12 flex items-center justify-center rounded mr-4">
+                                    <i class="fa fa-coffee fa-lg"></i>
+                                </span>
+                                <div>
+                                    @(orderLine.Name) x @((int)orderLine.Quantity)
+                                    <br />
+                                    <span class="text-xs text-gray-500">
+                                        @(orderLine.Sku)
+                                        @if (orderLine.Attributes.Count > 0)
+                                        {
+                                            foreach (var attr in orderLine.Attributes)
+                                            {
+                                                <text> / @(attr.Value)</text>
+                                            }
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="pl-4 font-medium">@(await orderLine.TotalPrice.WithoutAdjustments.FormattedAsync(x => x.WithoutTax))</div>
+
+                        </div>
+                    </li>
+                }
+            </ul>
+
+            @RenderSection("aside", false)
+
+            <div class="flex w-full justify-between items-center">
+                <div class="">Subtotal</div>
+                <div class="font-medium">@(await order.SubtotalPrice.WithoutAdjustments.FormattedAsync(x => x.WithoutTax))</div>
+            </div>
+
+            @if (shippingMethod != null)
+            {
+                <div class="flex w-full justify-between items-center mt-2">
+                    <div class="">
+                        Shipping via @(shippingMethod.Name)
+                    </div>
+                    <div class="font-medium">@(await order.ShippingInfo.TotalPrice.WithoutAdjustments.FormattedAsync(x => x.WithoutTax))</div>
+                </div>
+            }
+
+            @if (paymentMethod != null && paymentMethod.Alias != "zeroValue")
+            {
+                <div class="flex w-full justify-between items-center mt-2">
+                    <div class="">
+                        Payment via @(paymentMethod.Name)
+                    </div>
+                    <div class="font-medium">@(await order.PaymentInfo.TotalPrice.WithoutAdjustments.FormattedAsync(x => x.WithoutTax))</div>
+                </div>
+            }
+
+            @{
+                var totalDiscount = order.GetTotalPriceAdjustmentByType<DiscountAdjustment>();
+                if (totalDiscount != 0)
+                {
+                    <div class="flex w-full justify-between items-center mt-2 ">
+                        <div class="">Discounts</div>
+                        <div class="font-medium">@(await totalDiscount.FormattedAsync(x => x.WithoutTax))</div>
+                    </div>
+                }
+            }
+
+            <div class="flex w-full justify-between items-center mt-2">
+                <div class="">TAX</div>
+                <div class="font-medium">@(await order.TotalPrice.Value.FormattedAsync(x => x.Tax))</div>
+            </div>
+
+            @foreach (var giftCardAdjustment in order.TransactionAmount.Adjustments.OfType<GiftCardAdjustment>())
+            {
+                <div class="flex w-full justify-between items-center mt-2">
+                    <div class="">Gift Card (@(giftCardAdjustment.GiftCardCode))</div>
+                    <div class="font-medium">@(await giftCardAdjustment.Amount.FormattedAsync())</div>
+                </div>
+            }
+
+            <hr class="border-t border-gray-300 my-4" />
+
+            <div class="flex w-full justify-between items-center">
+                <div class="font-medium text-base">Total</div>
+                <div class="font-medium text-2xl">@await order.TransactionAmount.Value.FormattedAsync()</div>
+            </div>
+
+        </div>
+
+        <div class="bg-white flex-1 p-8">
+
+            <div class="hidden lg:block">
+
+                <div class="bg-white p-8 text-center">
+                    @if (!string.IsNullOrWhiteSpace(storeImageUrl))
+                    {
+                        <a href="/"><img src="@(storeImageUrl.GetCropUrl(200))" class="inline-block" /></a>
+                    }
+                    else
+                    {
+                        <h1 class="text-3xl font-bold"><a href="/">@(store?.Name ?? "Unknown").</a></h1>
+                    }
+                </div>
+
+                <div class="mb-8">
+                    <ul class="flex justify-center">
+                        @{
+                            var passedStep = false;
+                            foreach (var item in checkoutStepPages.Select((s, i) => new { Step = s, Index = i }))
+                            {
+                                <li class="@(item.Index > 0 ? "pl-2" : "") flex items-baseline">
+                                    @if (item.Index > 0)
+                                    {
+                                        <i class="fa fa-angle-right text-gray-500 pr-2"></i>
+                                    }
+                                    @if (!passedStep && item.Step.Id != Model.Id && Model.CanGoBack)
+                                    {
+                                        <a href="@item.Step.Url()" class="hover:uc-text-color">@(item.Step.ShortStepName ?? item.Step.Name)</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="@(item.Step.Id == Model.Id ? "font-bold" : "")">@(item.Step.ShortStepName ?? item.Step.Name)</span>
+                                    }
+                                </li>
+                                passedStep = passedStep || item.Step.Id == Model.Id;
+                            }
+                        }
+                    </ul>
+                </div>
+
+                @Html.ValidationSummary(true, "", new { @class = "hidden" })
+
+            </div>
+
+            @RenderBody()
+        </div>
+    </div>
+
+</div>
