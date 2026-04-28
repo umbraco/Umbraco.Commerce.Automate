@@ -93,7 +93,11 @@ stages:
               targetType: 'inline'
               pwsh: true
               script: |
-                mkdir -Force "$(Build.ArtifactStagingDirectory)/bom"
+                $ErrorActionPreference = 'Stop'
+
+                $bomDir = "$(Build.ArtifactStagingDirectory)/bom"
+                $bomPath = "$bomDir/bom.json"
+                New-Item -ItemType Directory -Force -Path $bomDir | Out-Null
                 Set-Location "$(Build.SourcesDirectory)"
 
                 # version
@@ -136,8 +140,36 @@ stages:
                   }
                 }
 
+                # Generate the BOM locally — do not let cdxgen upload, so we can surface DT's response on failure.
                 Write-Host 'Running cdxgen ...'
-                & cdxgen '--recurse' '--spec-version' '1.6' '--output' "$(Build.ArtifactStagingDirectory)/bom/bom.json" '--json-pretty' '--project-group' 'DXP' '--project-name' $PROJECT_NAME '--project-version' $VERSION '--server-url' $env:DT_BASE_URL '--api-key' $env:DT_API_KEY
+                & cdxgen '--recurse' '--spec-version' '1.6' '--output' $bomPath '--json-pretty' '--project-group' 'DXP' '--project-name' $PROJECT_NAME '--project-version' $VERSION
+                if ($LASTEXITCODE -ne 0) {
+                  throw "cdxgen failed with exit code $LASTEXITCODE"
+                }
+                if (-not (Test-Path $bomPath)) {
+                  throw "cdxgen did not produce $bomPath"
+                }
+
+                # Upload to Dependency-Track via the v1 BOM endpoint so any error body is visible.
+                Write-Host 'Uploading SBOM to Dependency-Track ...'
+                $bomBase64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($bomPath))
+                $payload = @{
+                  projectName    = $PROJECT_NAME
+                  projectVersion = $VERSION
+                  autoCreate     = $true
+                  bom            = $bomBase64
+                } | ConvertTo-Json -Compress
+                $uploadUri = ($env:DT_BASE_URL.TrimEnd('/')) + '/api/v1/bom'
+                try {
+                  Invoke-RestMethod -Method Put -Uri $uploadUri -Body $payload -ContentType 'application/json' -Headers @{ 'X-Api-Key' = $env:DT_API_KEY } | Out-Null
+                  Write-Host 'SBOM uploaded successfully'
+                } catch {
+                  Write-Host "Upload failed: $($_.Exception.Message)"
+                  if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+                    Write-Host "Response body: $($_.ErrorDetails.Message)"
+                  }
+                  throw
+                }
             env:
               DT_API_KEY: $(DT_API_KEY)
               DT_BASE_URL: $(DT_BASE_URL)
