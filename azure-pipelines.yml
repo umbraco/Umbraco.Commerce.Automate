@@ -29,7 +29,7 @@ stages:
     jobs:
       - job: Build
         variables:
-        - group: DependencyTrack
+        - group: dependency-track
         pool:
           vmImage: ubuntu-latest
         steps:
