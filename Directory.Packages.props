@@ -3,6 +3,12 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
+  <!-- Versioning -->
+  <ItemGroup>
+    <GlobalPackageReference Include="Nerdbank.GitVersioning" Version="3.8.118" />
+    <GlobalPackageReference Include="Umbraco.GitVersioning.Extensions" Version="0.2.0" />
+  </ItemGroup>
+
   <!-- Umbraco Automate -->
   <ItemGroup>
     <PackageVersion Include="Umbraco.Automate" Version="0.1.0--preview.353.g3ab423c" />
