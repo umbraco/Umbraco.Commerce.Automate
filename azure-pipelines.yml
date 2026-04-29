@@ -12,7 +12,7 @@ parameters:
   - name: cache_nuget
     displayName: Cache NuGet packages
     type: boolean
-    default: false
+    default: true
 
 variables:
   solution: Umbraco.Commerce.Automate.slnx
@@ -47,25 +47,31 @@ stages:
               useGlobalJson: true
 
           # Cache and restore NuGet packages
-          - task: Cache@2
-            condition: ${{ parameters.cache_nuget }}
-            displayName: Cache NuGet packages
-            inputs:
-              key: 'nuget | "$(Agent.OS)" | **/packages.lock.json, !**/bin/**, !**/obj/**'
-              restoreKeys: |
-                nuget | "$(Agent.OS)"
-                nuget
-              path: $(NUGET_PACKAGES)
+          - ${{ if parameters.cache_nuget }}:
+            - task: Cache@2
+              displayName: Cache NuGet packages
+              inputs:
+                key: 'nuget | "$(Agent.OS)" | Directory.Packages.props'
+                restoreKeys: |
+                  nuget | "$(Agent.OS)"
+                path: $(NUGET_PACKAGES)
 
           - script: dotnet restore $(solution)
             displayName: Restore NuGet packages
 
+          # Set version from version.json + git height (writes NBGV_* env vars for MSBuild)
+          - script: dotnet tool install --global nbgv || true
+            displayName: Install NBGV
+
+          - script: nbgv cloud
+            displayName: Set version
+
           # Build
-          - script: dotnet build $(solution) --configuration $(buildConfiguration) --no-restore -p:ContinuousIntegrationBuild=true
+          - script: dotnet build $(solution) --configuration $(buildConfiguration) --no-restore -p:ContinuousIntegrationBuild=true -p:DisableCloudBuildNumber=true
             displayName: Run dotnet build
 
           # Pack
-          - script: dotnet pack $(solution) --configuration $(buildConfiguration) --no-build --output $(Build.ArtifactStagingDirectory)/nupkg
+          - script: dotnet pack $(solution) --configuration $(buildConfiguration) --no-build --output $(Build.ArtifactStagingDirectory)/nupkg -p:DisableCloudBuildNumber=true
             displayName: Run dotnet pack
 
           # Publish
