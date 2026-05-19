@@ -3,228 +3,35 @@ name: $(TeamProject)_$(Build.DefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd
 trigger:
   branches:
     include:
-    - '*'
+      - '*'
   tags:
     include:
-    - release-*
+      - release-*
 
 parameters:
   - name: cache_nuget
     displayName: Cache NuGet packages
     type: boolean
     default: true
-
-variables:
-  solution: Umbraco.Commerce.Automate.slnx
-  buildConfiguration: Release
-  DOTNET_NOLOGO: true
-  DOTNET_GENERATE_ASPNET_CERTIFICATE: false
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  - name: runSbom
+    displayName: Generate & upload SBOM
+    type: boolean
+    default: true
 
 stages:
   - stage: Build
-    variables:
-      NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
+    displayName: Build & Pack
     jobs:
-      - job: Build
-        variables:
-        - group: dependency-track
-        pool:
-          vmImage: ubuntu-latest
-        steps:
-          # Checkout source (avoid shallow clone to calculate version height)
-          - checkout: self
-            fetchDepth: 0
-
-          # Setup build environment
-          - task: NuGetAuthenticate@1
-            displayName: Authenticate NuGet
-
-          - task: UseDotNet@2
-            displayName: Use .NET SDK from global.json
-            inputs:
-              useGlobalJson: true
-
-          # Cache and restore NuGet packages
-          - ${{ if parameters.cache_nuget }}:
-            - task: Cache@2
-              displayName: Cache NuGet packages
-              inputs:
-                key: 'nuget | "$(Agent.OS)" | Directory.Packages.props'
-                restoreKeys: |
-                  nuget | "$(Agent.OS)"
-                path: $(NUGET_PACKAGES)
-
-          - script: dotnet restore $(solution)
-            displayName: Restore NuGet packages
-
-          # Set version from version.json + git height (writes NBGV_* env vars for MSBuild)
-          - script: dotnet tool install --global nbgv || true
-            displayName: Install NBGV
-
-          - script: nbgv cloud
-            displayName: Set version
-
-          # Build
-          - script: dotnet build $(solution) --configuration $(buildConfiguration) --no-restore -p:ContinuousIntegrationBuild=true -p:DisableCloudBuildNumber=true
-            displayName: Run dotnet build
-
-          # Pack
-          - script: dotnet pack $(solution) --configuration $(buildConfiguration) --no-build --output $(Build.ArtifactStagingDirectory)/nupkg -p:DisableCloudBuildNumber=true
-            displayName: Run dotnet pack
-
-          # Publish
-          - task: PublishPipelineArtifact@1
-            displayName: Publish NuGet packages
-            inputs:
-              targetPath: $(Build.ArtifactStagingDirectory)/nupkg
-              artifactName: nupkg
-
-          - task: PublishPipelineArtifact@1
-            displayName: Publish build output
-            inputs:
-              targetPath: $(Build.SourcesDirectory)
-              artifactName: build_output
-
-          # Generate/upload SBOM with cdxgen
-          - script: |
-              cd $(Build.SourcesDirectory)
-              npm install --global @cyclonedx/cdxgen
-            displayName: 'Install cdxgen'
-
-          - task: PowerShell@2
-            displayName: 'Generate & upload SBOM with cdxgen (pwsh)'
-            inputs:
-              targetType: 'inline'
-              pwsh: true
-              script: |
-                $ErrorActionPreference = 'Stop'
-
-                $bomDir = "$(Build.ArtifactStagingDirectory)/bom"
-                $bomPath = "$bomDir/bom.json"
-                New-Item -ItemType Directory -Force -Path $bomDir | Out-Null
-                Set-Location "$(Build.SourcesDirectory)"
-
-                # version
-                $VERSION = 'vUNKNOWN'
-                if (Test-Path 'version.json') {
-                  try {
-                    $rawVersion = (Get-Content 'version.json' -Raw | ConvertFrom-Json).version
-                  } catch {
-                    if ((Get-Content 'version.json' -Raw) -match '"version"\s*:\s*"([^"]+)"') {
-                      $rawVersion = $matches[1]
-                    }
-                  }
-
-                  if ($rawVersion) {
-                    # Extract major part (e.g. "1" from "1.2.3") and add "v" prefix
-                    if ($rawVersion -match '^(\d+)\.') {
-                      $VERSION = "v$($matches[1])"
-                    } elseif ($rawVersion -match '^\d+$') {
-                      $VERSION = "v$rawVersion"
-                    } else {
-                      $VERSION = "vUNKNOWN"
-                    }
-                  }
-                }
-
-                Write-Host "Project version: $VERSION"
-
-                # derive project name
-                $PROJECT_NAME = [System.IO.Path]::GetFileNameWithoutExtension("$(solution)")
-                Write-Host "Project name: $PROJECT_NAME"
-
-                # short debug (last 5 chars)
-                foreach ($name in 'DT_BASE_URL','DT_API_KEY') {
-                  $v = (Get-Item "Env:$name").Value
-                  if ($v) {
-                    $last = if ($v.Length -gt 5) { $v.Substring($v.Length-5) } else { $v }
-                    Write-Host "$name (last5): ...$last"
-                  } else {
-                    Write-Host "$name is empty"
-                  }
-                }
-
-                # Generate the BOM locally — do not let cdxgen upload, so we can surface DT's response on failure.
-                Write-Host 'Running cdxgen ...'
-                & cdxgen '--recurse' '--spec-version' '1.6' '--output' $bomPath '--json-pretty' '--project-group' 'DXP' '--project-name' $PROJECT_NAME '--project-version' $VERSION
-                if ($LASTEXITCODE -ne 0) {
-                  throw "cdxgen failed with exit code $LASTEXITCODE"
-                }
-                if (-not (Test-Path $bomPath)) {
-                  throw "cdxgen did not produce $bomPath"
-                }
-
-                # Upload to Dependency-Track via the v1 BOM endpoint so any error body is visible.
-                Write-Host 'Uploading SBOM to Dependency-Track ...'
-                $bomBase64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($bomPath))
-                $payload = @{
-                  projectName    = $PROJECT_NAME
-                  projectVersion = $VERSION
-                  autoCreate     = $true
-                  bom            = $bomBase64
-                } | ConvertTo-Json -Compress
-                $uploadUri = ($env:DT_BASE_URL.TrimEnd('/')) + '/api/v1/bom'
-                try {
-                  Invoke-RestMethod -Method Put -Uri $uploadUri -Body $payload -ContentType 'application/json' -Headers @{ 'X-Api-Key' = $env:DT_API_KEY } | Out-Null
-                  Write-Host 'SBOM uploaded successfully'
-                } catch {
-                  Write-Host "Upload failed: $($_.Exception.Message)"
-                  if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
-                    Write-Host "Response body: $($_.ErrorDetails.Message)"
-                  }
-                  throw
-                }
-            env:
-              DT_API_KEY: $(DT_API_KEY)
-              DT_BASE_URL: $(DT_BASE_URL)
-
-          - task: PublishPipelineArtifact@1
-            displayName: 'Publish SBOM Artifact'
-            inputs:
-              targetPath: $(Build.ArtifactStagingDirectory)/bom
-              artifactName: SBOM
+      - template: .devops/build-and-pack.yml
+        parameters:
+          solution: Umbraco.Commerce.Automate.slnx
+          productName: Umbraco.Commerce.Automate
+          cache_nuget: ${{ parameters.cache_nuget }}
+          runSbom: ${{ parameters.runSbom }}
 
   - stage: Test
     dependsOn: Build
     jobs:
-      - job: UnitTests
-        displayName: Unit Tests
-        strategy:
-          matrix:
-            Windows:
-              vmImage: 'windows-latest'
-            Linux:
-              vmImage: 'ubuntu-latest'
-            macOS:
-              vmImage: 'macos-latest'
-        pool:
-          vmImage: $(vmImage)
-        steps:
-          # Setup test environment
-          - task: DownloadPipelineArtifact@2
-            displayName: Download build artifacts
-            inputs:
-              artifact: build_output
-              path: $(Build.SourcesDirectory)
-
-          - task: UseDotNet@2
-            displayName: Use .NET SDK from global.json
-            inputs:
-              useGlobalJson: true
-
-          # Test
-          - script: dotnet test $(solution) --configuration $(buildConfiguration) --no-build --logger trx --results-directory $(Build.ArtifactStagingDirectory)/tests
-            displayName: Run dotnet test
-
-          # Publish
-          - task: PublishTestResults@2
-            displayName: Publish test results
-            condition: succeededOrFailed()
-            inputs:
-              testResultsFormat: VSTest
-              testResultsFiles: '*.trx'
-              searchFolder: $(Build.ArtifactStagingDirectory)/tests
-              testRunTitle: Unit Tests - $(Agent.OS)
-              configuration: $(buildConfiguration)
+      - template: .devops/test.yml
+        parameters:
+          solution: Umbraco.Commerce.Automate.slnx
