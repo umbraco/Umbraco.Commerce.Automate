@@ -46,12 +46,9 @@ public sealed class IssueGiftCardAction : ActionBase<IssueGiftCardSettings, Issu
                 StepRunErrorCategory.Validation);
         }
 
-        var storeAuth = await _storeAuthorizer.AuthorizeStoreAsync(storeId, cancellationToken);
-        if (!storeAuth.Authorized)
+        if (await _storeAuthorizer.AuthorizeStoreOrFailAsync(storeId, cancellationToken) is { } storeAuthFailure)
         {
-            return ActionResult.Failed(
-                new UnauthorizedAccessException(storeAuth.FailureReason),
-                StepRunErrorCategory.Authentication);
+            return storeAuthFailure;
         }
 
         if (!Guid.TryParse(settings.CurrencyId, out var currencyId))

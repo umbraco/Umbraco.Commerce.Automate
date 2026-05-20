@@ -2,6 +2,7 @@ using Umbraco.Automate.Core.Security;
 using Umbraco.Cms.Core.Models.Membership;
 using Umbraco.Cms.Core.Security;
 using Umbraco.Commerce.Core.Services;
+using Umbraco.Commerce.Extensions;
 using Umbraco.Extensions;
 
 namespace Umbraco.Commerce.Automate.Security;
@@ -51,8 +52,10 @@ internal sealed class CommerceStoreAuthorizer : ICommerceStoreAuthorizer
             return AutomationAuthorizationResult.Fail($"Store '{storeId}' not found.");
         }
 
-        var roles = user.Groups?.Select(g => g.Alias).Where(a => a is not null).Select(a => a!) ?? [];
-        if (store.IsAllowed(user.Id.ToString()!, roles))
+        // Delegate to Commerce's own StoreExtensions.IsAllowed(IUser) — it knows the
+        // canonical identifier formats (user.Key for AllowedUsers, group.Key for
+        // AllowedUserRoles) which differ from the integer Id and alias respectively.
+        if (store.IsAllowed(user))
         {
             return AutomationAuthorizationResult.Success;
         }

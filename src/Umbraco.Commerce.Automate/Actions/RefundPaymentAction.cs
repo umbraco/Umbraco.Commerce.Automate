@@ -57,12 +57,9 @@ public sealed class RefundPaymentAction : ActionBase<RefundPaymentSettings, Refu
                 StepRunErrorCategory.Validation);
         }
 
-        var storeAuth = await _storeAuthorizer.AuthorizeStoreAsync(order.StoreId, cancellationToken);
-        if (!storeAuth.Authorized)
+        if (await _storeAuthorizer.AuthorizeStoreOrFailAsync(order.StoreId, cancellationToken) is { } storeAuthFailure)
         {
-            return ActionResult.Failed(
-                new UnauthorizedAccessException(storeAuth.FailureReason),
-                StepRunErrorCategory.Authentication);
+            return storeAuthFailure;
         }
 
         var refundRequest = new OrderRefundRequest

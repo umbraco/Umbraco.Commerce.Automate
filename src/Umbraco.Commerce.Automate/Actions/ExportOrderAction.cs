@@ -62,12 +62,9 @@ public sealed class ExportOrderAction : ActionBase<ExportOrderSettings, ExportOr
                 StepRunErrorCategory.Validation);
         }
 
-        var storeAuth = await _storeAuthorizer.AuthorizeStoreAsync(order.StoreId, cancellationToken);
-        if (!storeAuth.Authorized)
+        if (await _storeAuthorizer.AuthorizeStoreOrFailAsync(order.StoreId, cancellationToken) is { } storeAuthFailure)
         {
-            return ActionResult.Failed(
-                new UnauthorizedAccessException(storeAuth.FailureReason),
-                StepRunErrorCategory.Authentication);
+            return storeAuthFailure;
         }
 
         var template = await _exportTemplateService.GetExportTemplateAsync(order.StoreId, settings.TemplateAlias);

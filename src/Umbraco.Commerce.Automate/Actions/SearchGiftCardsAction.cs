@@ -42,12 +42,9 @@ public sealed class SearchGiftCardsAction : ActionBase<SearchGiftCardsSettings, 
                 StepRunErrorCategory.Validation);
         }
 
-        var storeAuth = await _storeAuthorizer.AuthorizeStoreAsync(storeId, cancellationToken);
-        if (!storeAuth.Authorized)
+        if (await _storeAuthorizer.AuthorizeStoreOrFailAsync(storeId, cancellationToken) is { } storeAuthFailure)
         {
-            return ActionResult.Failed(
-                new UnauthorizedAccessException(storeAuth.FailureReason),
-                StepRunErrorCategory.Authentication);
+            return storeAuthFailure;
         }
 
         var pageSize = Math.Clamp(settings.PageSize > 0 ? settings.PageSize : 50, 1, 500);

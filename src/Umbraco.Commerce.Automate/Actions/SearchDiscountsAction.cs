@@ -41,12 +41,9 @@ public sealed class SearchDiscountsAction : ActionBase<SearchDiscountsSettings, 
                 StepRunErrorCategory.Validation);
         }
 
-        var storeAuth = await _storeAuthorizer.AuthorizeStoreAsync(storeId, cancellationToken);
-        if (!storeAuth.Authorized)
+        if (await _storeAuthorizer.AuthorizeStoreOrFailAsync(storeId, cancellationToken) is { } storeAuthFailure)
         {
-            return ActionResult.Failed(
-                new UnauthorizedAccessException(storeAuth.FailureReason),
-                StepRunErrorCategory.Authentication);
+            return storeAuthFailure;
         }
 
         var discounts = settings.OnlyActive
