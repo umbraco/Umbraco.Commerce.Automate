@@ -6,7 +6,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.orderCreated", "Order Created",
     Description = "Fires when a new order is created.",
     Group = "Commerce",
-    Icon = "icon-add")]
+    Icon = "icon-add",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class OrderCreatedTrigger
     : NotificationTriggerBase<StoreTriggerSettings, OrderCreatedTriggerOutput, CommerceOrderCreatedNotification>
 {

@@ -1,7 +1,9 @@
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Automate.Core.Security;
 using Umbraco.Automate.Testing;
 using Umbraco.Commerce.Automate.Actions;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Core.Services;
 using Umbraco.Commerce.Core.Templating;
 
@@ -12,6 +14,14 @@ public class ExportOrderActionTests
     private readonly Mock<IOrderService> _orderService = new();
     private readonly Mock<IExportTemplateService> _exportTemplateService = new();
     private readonly Mock<ITemplateEngine> _templateEngine = new();
+    private readonly Mock<ICommerceStoreAuthorizer> _storeAuthorizer = new();
+
+    public ExportOrderActionTests()
+    {
+        _storeAuthorizer
+            .Setup(a => a.AuthorizeStoreAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(AutomationAuthorizationResult.Success);
+    }
 
     [Fact]
     public async Task InvalidOrderId_ReturnsValidationError()
@@ -20,6 +30,7 @@ public class ExportOrderActionTests
             .WithService(_orderService.Object)
             .WithService(_exportTemplateService.Object)
             .WithService(_templateEngine.Object)
+            .WithService(_storeAuthorizer.Object)
             .WithSettings(new ExportOrderSettings { OrderId = "not-a-guid", TemplateAlias = "invoice" })
             .ExecuteAsync();
 
@@ -34,6 +45,7 @@ public class ExportOrderActionTests
             .WithService(_orderService.Object)
             .WithService(_exportTemplateService.Object)
             .WithService(_templateEngine.Object)
+            .WithService(_storeAuthorizer.Object)
             .WithSettings(new ExportOrderSettings { OrderId = Guid.NewGuid().ToString(), TemplateAlias = "" })
             .ExecuteAsync();
 

@@ -9,7 +9,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.stockChanged", "Stock Changed",
     Description = "Fires when product stock changes.",
     Group = "Commerce",
-    Icon = "icon-box")]
+    Icon = "icon-box",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class StockChangedTrigger
     : NotificationTriggerBase<StoreTriggerSettings, StockChangedTriggerOutput, CommerceStockChangedNotification>
 {

@@ -1,5 +1,6 @@
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Common;
 using Umbraco.Commerce.Core.Services;
 
@@ -11,20 +12,24 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.tagOrder", "Tag Order",
     Description = "Adds tags to a Commerce order.",
     Group = "Commerce",
-    Icon = "icon-tags")]
+    Icon = "icon-tags",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class TagOrderAction : ActionBase<TagOrderSettings, TagOrderOutput>
 {
     private readonly IOrderService _orderService;
     private readonly IUnitOfWorkProvider _uowProvider;
+    private readonly ICommerceStoreAuthorizer _storeAuthorizer;
 
     public TagOrderAction(
         ActionInfrastructure infrastructure,
         IOrderService orderService,
-        IUnitOfWorkProvider uowProvider)
+        IUnitOfWorkProvider uowProvider,
+        ICommerceStoreAuthorizer storeAuthorizer)
         : base(infrastructure)
     {
         _orderService = orderService;
         _uowProvider = uowProvider;
+        _storeAuthorizer = storeAuthorizer;
     }
 
     /// <inheritdoc />
@@ -54,6 +59,14 @@ public sealed class TagOrderAction : ActionBase<TagOrderSettings, TagOrderOutput
             return ActionResult.Failed(
                 new InvalidOperationException($"Order '{orderId}' not found."),
                 StepRunErrorCategory.Validation);
+        }
+
+        var storeAuth = await _storeAuthorizer.AuthorizeStoreAsync(order.StoreId, cancellationToken);
+        if (!storeAuth.Authorized)
+        {
+            return ActionResult.Failed(
+                new UnauthorizedAccessException(storeAuth.FailureReason),
+                StepRunErrorCategory.Authentication);
         }
 
         await _uowProvider.ExecuteAsync(async uow =>

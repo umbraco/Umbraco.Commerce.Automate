@@ -6,7 +6,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.emailSent", "Email Sent",
     Description = "Fires when a Commerce email is sent successfully.",
     Group = "Commerce",
-    Icon = "icon-message")]
+    Icon = "icon-message",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class EmailSentTrigger
     : NotificationTriggerBase<object, EmailEventTriggerOutput, CommerceEmailNotification>
 {

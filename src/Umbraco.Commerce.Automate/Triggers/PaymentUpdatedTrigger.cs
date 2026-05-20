@@ -9,7 +9,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.paymentUpdated", "Payment Updated",
     Description = "Fires when an order's payment transaction is updated.",
     Group = "Commerce",
-    Icon = "icon-coins-alt")]
+    Icon = "icon-coins-alt",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class PaymentUpdatedTrigger
     : NotificationTriggerBase<StoreTriggerSettings, PaymentUpdatedTriggerOutput, CommercePaymentUpdatedNotification>
 {

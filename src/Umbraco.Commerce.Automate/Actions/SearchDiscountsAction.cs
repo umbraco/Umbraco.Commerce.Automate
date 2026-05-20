@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Core.Services;
 
 namespace Umbraco.Commerce.Automate.Actions;
@@ -11,17 +12,21 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.searchDiscounts", "Search Discounts",
     Description = "Lists Commerce discounts for a store, optionally filtered by name/alias or active state.",
     Group = "Commerce",
-    Icon = "icon-search")]
+    Icon = "icon-search",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class SearchDiscountsAction : ActionBase<SearchDiscountsSettings, SearchDiscountsOutput>
 {
     private readonly IDiscountService _discountService;
+    private readonly ICommerceStoreAuthorizer _storeAuthorizer;
 
     public SearchDiscountsAction(
         ActionInfrastructure infrastructure,
-        IDiscountService discountService)
+        IDiscountService discountService,
+        ICommerceStoreAuthorizer storeAuthorizer)
         : base(infrastructure)
     {
         _discountService = discountService;
+        _storeAuthorizer = storeAuthorizer;
     }
 
     /// <inheritdoc />
@@ -34,6 +39,14 @@ public sealed class SearchDiscountsAction : ActionBase<SearchDiscountsSettings, 
             return ActionResult.Failed(
                 new ArgumentException("A valid Store ID is required."),
                 StepRunErrorCategory.Validation);
+        }
+
+        var storeAuth = await _storeAuthorizer.AuthorizeStoreAsync(storeId, cancellationToken);
+        if (!storeAuth.Authorized)
+        {
+            return ActionResult.Failed(
+                new UnauthorizedAccessException(storeAuth.FailureReason),
+                StepRunErrorCategory.Authentication);
         }
 
         var discounts = settings.OnlyActive

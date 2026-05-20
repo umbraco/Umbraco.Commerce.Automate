@@ -6,7 +6,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.emailFailed", "Email Failed",
     Description = "Fires when a Commerce email fails to send.",
     Group = "Commerce",
-    Icon = "icon-alert")]
+    Icon = "icon-alert",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class EmailFailedTrigger
     : NotificationTriggerBase<object, EmailEventTriggerOutput, CommerceEmailNotification>
 {

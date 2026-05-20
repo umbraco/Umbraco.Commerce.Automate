@@ -1,7 +1,9 @@
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Automate.Core.Security;
 using Umbraco.Automate.Testing;
 using Umbraco.Commerce.Automate.Actions;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Common;
 using Umbraco.Commerce.Core.Services;
 
@@ -11,6 +13,14 @@ public class AssignOrderToCustomerActionTests
 {
     private readonly Mock<IOrderService> _orderService = new();
     private readonly Mock<IUnitOfWorkProvider> _uowProvider = new();
+    private readonly Mock<ICommerceStoreAuthorizer> _storeAuthorizer = new();
+
+    public AssignOrderToCustomerActionTests()
+    {
+        _storeAuthorizer
+            .Setup(a => a.AuthorizeStoreAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(AutomationAuthorizationResult.Success);
+    }
 
     [Fact]
     public async Task InvalidOrderId_ReturnsValidationError()
@@ -18,6 +28,7 @@ public class AssignOrderToCustomerActionTests
         var result = await ActionTestHarness.For<AssignOrderToCustomerAction>()
             .WithService(_orderService.Object)
             .WithService(_uowProvider.Object)
+            .WithService(_storeAuthorizer.Object)
             .WithSettings(new AssignOrderToCustomerSettings { OrderId = "not-a-guid", CustomerReference = "cust-1" })
             .ExecuteAsync();
 
@@ -31,6 +42,7 @@ public class AssignOrderToCustomerActionTests
         var result = await ActionTestHarness.For<AssignOrderToCustomerAction>()
             .WithService(_orderService.Object)
             .WithService(_uowProvider.Object)
+            .WithService(_storeAuthorizer.Object)
             .WithSettings(new AssignOrderToCustomerSettings { OrderId = Guid.NewGuid().ToString(), CustomerReference = "" })
             .ExecuteAsync();
 

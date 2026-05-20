@@ -1,9 +1,11 @@
+using Umbraco.Commerce.Automate.Dispatch;
+
 namespace Umbraco.Commerce.Automate.Triggers;
 
 /// <summary>
 /// Output produced by the <see cref="PaymentUpdatedTrigger"/>.
 /// </summary>
-public sealed class PaymentUpdatedTriggerOutput
+public sealed class PaymentUpdatedTriggerOutput : IStoreScopedTriggerOutput
 {
     public Guid OrderId { get; init; }
     public string? OrderNumber { get; init; }
@@ -13,4 +15,6 @@ public sealed class PaymentUpdatedTriggerOutput
     public string? TransactionId { get; init; }
     public decimal AmountAuthorized { get; init; }
     public decimal TransactionFee { get; init; }
+
+    Guid IStoreScopedTriggerOutput.GetStoreId() => StoreId;
 }

@@ -6,7 +6,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.shippingMethodChanged", "Shipping Method Changed",
     Description = "Fires when an order's shipping method changes.",
     Group = "Commerce",
-    Icon = "icon-truck")]
+    Icon = "icon-truck",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class ShippingMethodChangedTrigger
     : NotificationTriggerBase<StoreTriggerSettings, ShippingMethodChangedTriggerOutput, CommerceOrderShippingMethodChangedNotification>
 {

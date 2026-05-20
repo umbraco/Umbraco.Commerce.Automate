@@ -1,5 +1,6 @@
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Common;
 using Umbraco.Commerce.Core.Services;
 using Umbraco.Commerce.Extensions;
@@ -12,20 +13,24 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.addProductToOrder", "Add Product to Order",
     Description = "Adds a product to an existing Commerce order.",
     Group = "Commerce",
-    Icon = "icon-shopping-basket-alt-2")]
+    Icon = "icon-shopping-basket-alt-2",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class AddProductToOrderAction : ActionBase<AddProductToOrderSettings, AddProductToOrderOutput>
 {
     private readonly IOrderService _orderService;
     private readonly IUnitOfWorkProvider _uowProvider;
+    private readonly ICommerceStoreAuthorizer _storeAuthorizer;
 
     public AddProductToOrderAction(
         ActionInfrastructure infrastructure,
         IOrderService orderService,
-        IUnitOfWorkProvider uowProvider)
+        IUnitOfWorkProvider uowProvider,
+        ICommerceStoreAuthorizer storeAuthorizer)
         : base(infrastructure)
     {
         _orderService = orderService;
         _uowProvider = uowProvider;
+        _storeAuthorizer = storeAuthorizer;
     }
 
     /// <inheritdoc />
@@ -60,6 +65,14 @@ public sealed class AddProductToOrderAction : ActionBase<AddProductToOrderSettin
             return ActionResult.Failed(
                 new InvalidOperationException($"Order '{orderId}' not found."),
                 StepRunErrorCategory.Validation);
+        }
+
+        var storeAuth = await _storeAuthorizer.AuthorizeStoreAsync(order.StoreId, cancellationToken);
+        if (!storeAuth.Authorized)
+        {
+            return ActionResult.Failed(
+                new UnauthorizedAccessException(storeAuth.FailureReason),
+                StepRunErrorCategory.Authentication);
         }
 
         await _uowProvider.ExecuteAsync(async uow =>

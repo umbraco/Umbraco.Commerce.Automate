@@ -9,7 +9,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.orderStatusChanged", "Order Status Changed",
     Description = "Fires when an order's status changes.",
     Group = "Commerce",
-    Icon = "icon-arrow-right")]
+    Icon = "icon-arrow-right",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class OrderStatusChangedTrigger
     : NotificationTriggerBase<StoreTriggerSettings, OrderStatusChangedTriggerOutput, CommerceOrderStatusChangedNotification>
 {

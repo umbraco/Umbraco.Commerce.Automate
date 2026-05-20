@@ -6,7 +6,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.paymentMethodChanged", "Payment Method Changed",
     Description = "Fires when an order's payment method changes.",
     Group = "Commerce",
-    Icon = "icon-credit-card")]
+    Icon = "icon-credit-card",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class PaymentMethodChangedTrigger
     : NotificationTriggerBase<StoreTriggerSettings, PaymentMethodChangedTriggerOutput, CommerceOrderPaymentMethodChangedNotification>
 {

@@ -1,5 +1,6 @@
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Common;
 using Umbraco.Commerce.Core.Services;
 using Umbraco.Commerce.Extensions;
@@ -12,23 +13,27 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.capturePayment", "Capture Payment",
     Description = "Captures an authorized payment on a Commerce order via the payment provider.",
     Group = "Commerce",
-    Icon = "icon-coins-alt")]
+    Icon = "icon-coins-alt",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class CapturePaymentAction : ActionBase<CapturePaymentSettings, CapturePaymentOutput>
 {
     private readonly IOrderService _orderService;
     private readonly IPaymentService _paymentService;
     private readonly IUnitOfWorkProvider _uowProvider;
+    private readonly ICommerceStoreAuthorizer _storeAuthorizer;
 
     public CapturePaymentAction(
         ActionInfrastructure infrastructure,
         IOrderService orderService,
         IPaymentService paymentService,
-        IUnitOfWorkProvider uowProvider)
+        IUnitOfWorkProvider uowProvider,
+        ICommerceStoreAuthorizer storeAuthorizer)
         : base(infrastructure)
     {
         _orderService = orderService;
         _paymentService = paymentService;
         _uowProvider = uowProvider;
+        _storeAuthorizer = storeAuthorizer;
     }
 
     /// <inheritdoc />
@@ -49,6 +54,14 @@ public sealed class CapturePaymentAction : ActionBase<CapturePaymentSettings, Ca
             return ActionResult.Failed(
                 new InvalidOperationException($"Order '{orderId}' not found."),
                 StepRunErrorCategory.Validation);
+        }
+
+        var storeAuth = await _storeAuthorizer.AuthorizeStoreAsync(order.StoreId, cancellationToken);
+        if (!storeAuth.Authorized)
+        {
+            return ActionResult.Failed(
+                new UnauthorizedAccessException(storeAuth.FailureReason),
+                StepRunErrorCategory.Authentication);
         }
 
         var result = await _paymentService.CaptureOrderPaymentAsync(order, cancellationToken);

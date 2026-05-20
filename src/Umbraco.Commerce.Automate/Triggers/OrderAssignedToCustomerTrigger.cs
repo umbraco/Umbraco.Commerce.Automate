@@ -6,7 +6,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.orderAssignedToCustomer", "Order Assigned to Customer",
     Description = "Fires when an order is assigned to a customer.",
     Group = "Commerce",
-    Icon = "icon-user")]
+    Icon = "icon-user",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class OrderAssignedToCustomerTrigger
     : NotificationTriggerBase<StoreTriggerSettings, OrderAssignedToCustomerTriggerOutput, CommerceOrderAssignedToCustomerNotification>
 {
