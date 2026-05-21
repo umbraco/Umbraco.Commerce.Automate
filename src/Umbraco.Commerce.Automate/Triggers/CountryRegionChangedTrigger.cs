@@ -6,7 +6,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.countryRegionChanged", "Country/Region Changed",
     Description = "Fires when an order's billing or shipping country/region changes.",
     Group = "Commerce",
-    Icon = "icon-globe")]
+    Icon = "icon-globe",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class CountryRegionChangedTrigger
     : NotificationTriggerBase<StoreTriggerSettings, CountryRegionChangedTriggerOutput, CommerceOrderCountryRegionChangedNotification>
 {

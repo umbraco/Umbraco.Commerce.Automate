@@ -6,7 +6,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.discountCreated", "Discount Created",
     Description = "Fires when a discount is created.",
     Group = "Commerce",
-    Icon = "icon-star")]
+    Icon = "icon-star",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class DiscountCreatedTrigger
     : NotificationTriggerBase<StoreTriggerSettings, DiscountCreatedTriggerOutput, CommerceDiscountCreatedNotification>
 {

@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Core.Services;
 using Umbraco.Commerce.Extensions;
 
@@ -13,17 +14,21 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.searchOrders", "Search Orders",
     Description = "Searches Commerce orders and returns results as JSON.",
     Group = "Commerce",
-    Icon = "icon-search")]
+    Icon = "icon-search",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class SearchOrdersAction : ActionBase<SearchOrdersSettings, SearchOrdersOutput>
 {
     private readonly IOrderService _orderService;
+    private readonly ICommerceStoreAuthorizer _storeAuthorizer;
 
     public SearchOrdersAction(
         ActionInfrastructure infrastructure,
-        IOrderService orderService)
+        IOrderService orderService,
+        ICommerceStoreAuthorizer storeAuthorizer)
         : base(infrastructure)
     {
         _orderService = orderService;
+        _storeAuthorizer = storeAuthorizer;
     }
 
     /// <inheritdoc />
@@ -36,6 +41,11 @@ public sealed class SearchOrdersAction : ActionBase<SearchOrdersSettings, Search
             return ActionResult.Failed(
                 new ArgumentException("A valid Store ID is required."),
                 StepRunErrorCategory.Validation);
+        }
+
+        if (await _storeAuthorizer.AuthorizeStoreOrFailAsync(storeId, cancellationToken) is { } storeAuthFailure)
+        {
+            return storeAuthFailure;
         }
 
         var pageSize = Math.Clamp(settings.PageSize > 0 ? settings.PageSize : 50, 1, 500);

@@ -1,9 +1,11 @@
+using Umbraco.Commerce.Automate.Dispatch;
+
 namespace Umbraco.Commerce.Automate.Triggers;
 
 /// <summary>
 /// Output produced by the <see cref="OrderFinalizedTrigger"/>.
 /// </summary>
-public sealed class OrderFinalizedTriggerOutput
+public sealed class OrderFinalizedTriggerOutput : IStoreScopedTriggerOutput
 {
     public Guid OrderId { get; init; }
     public string? OrderNumber { get; init; }
@@ -13,4 +15,6 @@ public sealed class OrderFinalizedTriggerOutput
     public string? CustomerLastName { get; init; }
     public Guid CurrencyId { get; init; }
     public string? PaymentStatus { get; init; }
+
+    Guid IStoreScopedTriggerOutput.GetStoreId() => StoreId;
 }

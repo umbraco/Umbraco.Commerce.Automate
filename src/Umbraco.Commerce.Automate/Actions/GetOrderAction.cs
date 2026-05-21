@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Core.Models;
 using Umbraco.Commerce.Core.Services;
 
@@ -12,17 +13,21 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.getOrder", "Get Order",
     Description = "Fetches a Commerce order by ID or by store + order number.",
     Group = "Commerce",
-    Icon = "icon-shopping-basket")]
+    Icon = "icon-shopping-basket",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class GetOrderAction : ActionBase<GetOrderSettings, GetOrderOutput>
 {
     private readonly IOrderService _orderService;
+    private readonly ICommerceStoreAuthorizer _storeAuthorizer;
 
     public GetOrderAction(
         ActionInfrastructure infrastructure,
-        IOrderService orderService)
+        IOrderService orderService,
+        ICommerceStoreAuthorizer storeAuthorizer)
         : base(infrastructure)
     {
         _orderService = orderService;
+        _storeAuthorizer = storeAuthorizer;
     }
 
     /// <inheritdoc />
@@ -66,6 +71,11 @@ public sealed class GetOrderAction : ActionBase<GetOrderSettings, GetOrderOutput
             return ActionResult.Failed(
                 new InvalidOperationException("Order not found."),
                 StepRunErrorCategory.Validation);
+        }
+
+        if (await _storeAuthorizer.AuthorizeStoreOrFailAsync(order.StoreId, cancellationToken) is { } storeAuthFailure)
+        {
+            return storeAuthFailure;
         }
 
         var orderJson = new JsonObject

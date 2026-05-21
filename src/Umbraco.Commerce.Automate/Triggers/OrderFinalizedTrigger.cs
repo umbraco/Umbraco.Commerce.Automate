@@ -9,7 +9,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.orderFinalized", "Order Finalized",
     Description = "Fires when an order is finalized.",
     Group = "Commerce",
-    Icon = "icon-receipt-dollar")]
+    Icon = "icon-receipt-dollar",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class OrderFinalizedTrigger
     : NotificationTriggerBase<StoreTriggerSettings, OrderFinalizedTriggerOutput, CommerceOrderFinalizedNotification>
 {

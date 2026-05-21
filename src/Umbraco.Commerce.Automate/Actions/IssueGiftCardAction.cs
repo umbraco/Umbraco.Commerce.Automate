@@ -1,6 +1,7 @@
 using System.Globalization;
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Common;
 using Umbraco.Commerce.Core.Models;
 using Umbraco.Commerce.Core.Services;
@@ -13,20 +14,24 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.issueGiftCard", "Issue Gift Card",
     Description = "Issues a new gift card (e.g., for a loyalty reward).",
     Group = "Commerce",
-    Icon = "icon-gift")]
+    Icon = "icon-gift",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class IssueGiftCardAction : ActionBase<IssueGiftCardSettings, IssueGiftCardOutput>
 {
     private readonly IGiftCardService _giftCardService;
     private readonly IUnitOfWorkProvider _uowProvider;
+    private readonly ICommerceStoreAuthorizer _storeAuthorizer;
 
     public IssueGiftCardAction(
         ActionInfrastructure infrastructure,
         IGiftCardService giftCardService,
-        IUnitOfWorkProvider uowProvider)
+        IUnitOfWorkProvider uowProvider,
+        ICommerceStoreAuthorizer storeAuthorizer)
         : base(infrastructure)
     {
         _giftCardService = giftCardService;
         _uowProvider = uowProvider;
+        _storeAuthorizer = storeAuthorizer;
     }
 
     /// <inheritdoc />
@@ -39,6 +44,11 @@ public sealed class IssueGiftCardAction : ActionBase<IssueGiftCardSettings, Issu
             return ActionResult.Failed(
                 new ArgumentException("A valid Store ID is required."),
                 StepRunErrorCategory.Validation);
+        }
+
+        if (await _storeAuthorizer.AuthorizeStoreOrFailAsync(storeId, cancellationToken) is { } storeAuthFailure)
+        {
+            return storeAuthFailure;
         }
 
         if (!Guid.TryParse(settings.CurrencyId, out var currencyId))

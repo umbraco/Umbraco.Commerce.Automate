@@ -1,5 +1,6 @@
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Common;
 using Umbraco.Commerce.Core.Models;
 using Umbraco.Commerce.Core.Services;
@@ -12,20 +13,24 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.finalizeOrder", "Finalize Order",
     Description = "Finalizes a Commerce order manually (for offline/admin/bank-transfer payments).",
     Group = "Commerce",
-    Icon = "icon-receipt-dollar")]
+    Icon = "icon-receipt-dollar",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class FinalizeOrderAction : ActionBase<FinalizeOrderSettings, FinalizeOrderOutput>
 {
     private readonly IOrderService _orderService;
     private readonly IUnitOfWorkProvider _uowProvider;
+    private readonly ICommerceStoreAuthorizer _storeAuthorizer;
 
     public FinalizeOrderAction(
         ActionInfrastructure infrastructure,
         IOrderService orderService,
-        IUnitOfWorkProvider uowProvider)
+        IUnitOfWorkProvider uowProvider,
+        ICommerceStoreAuthorizer storeAuthorizer)
         : base(infrastructure)
     {
         _orderService = orderService;
         _uowProvider = uowProvider;
+        _storeAuthorizer = storeAuthorizer;
     }
 
     /// <inheritdoc />
@@ -53,6 +58,11 @@ public sealed class FinalizeOrderAction : ActionBase<FinalizeOrderSettings, Fina
             return ActionResult.Failed(
                 new InvalidOperationException($"Order '{orderId}' not found."),
                 StepRunErrorCategory.Validation);
+        }
+
+        if (await _storeAuthorizer.AuthorizeStoreOrFailAsync(order.StoreId, cancellationToken) is { } storeAuthFailure)
+        {
+            return storeAuthFailure;
         }
 
         if (order.IsFinalized)

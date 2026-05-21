@@ -1,5 +1,6 @@
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Core.Services;
 
 namespace Umbraco.Commerce.Automate.Actions;
@@ -10,17 +11,21 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.updateStock", "Update Stock",
     Description = "Sets, increases, or decreases the stock level of a product.",
     Group = "Commerce",
-    Icon = "icon-box")]
+    Icon = "icon-box",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class UpdateStockAction : ActionBase<UpdateStockSettings, UpdateStockOutput>
 {
     private readonly IStockService _stockService;
+    private readonly ICommerceStoreAuthorizer _storeAuthorizer;
 
     public UpdateStockAction(
         ActionInfrastructure infrastructure,
-        IStockService stockService)
+        IStockService stockService,
+        ICommerceStoreAuthorizer storeAuthorizer)
         : base(infrastructure)
     {
         _stockService = stockService;
+        _storeAuthorizer = storeAuthorizer;
     }
 
     /// <inheritdoc />
@@ -33,6 +38,11 @@ public sealed class UpdateStockAction : ActionBase<UpdateStockSettings, UpdateSt
             return ActionResult.Failed(
                 new ArgumentException("A valid Store ID is required."),
                 StepRunErrorCategory.Validation);
+        }
+
+        if (await _storeAuthorizer.AuthorizeStoreOrFailAsync(storeId, cancellationToken) is { } storeAuthFailure)
+        {
+            return storeAuthFailure;
         }
 
         if (string.IsNullOrWhiteSpace(settings.ProductReference))

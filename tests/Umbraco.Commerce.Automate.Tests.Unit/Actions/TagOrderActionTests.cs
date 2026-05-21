@@ -1,7 +1,9 @@
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Automate.Core.Security;
 using Umbraco.Automate.Testing;
 using Umbraco.Commerce.Automate.Actions;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Common;
 using Umbraco.Commerce.Core.Services;
 
@@ -11,6 +13,14 @@ public class TagOrderActionTests
 {
     private readonly Mock<IOrderService> _orderService = new();
     private readonly Mock<IUnitOfWorkProvider> _uowProvider = new();
+    private readonly Mock<ICommerceStoreAuthorizer> _storeAuthorizer = new();
+
+    public TagOrderActionTests()
+    {
+        _storeAuthorizer
+            .Setup(a => a.AuthorizeStoreAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(AutomationAuthorizationResult.Success);
+    }
 
     [Fact]
     public async Task InvalidOrderId_ReturnsValidationError()
@@ -18,6 +28,7 @@ public class TagOrderActionTests
         var result = await ActionTestHarness.For<TagOrderAction>()
             .WithService(_orderService.Object)
             .WithService(_uowProvider.Object)
+            .WithService(_storeAuthorizer.Object)
             .WithSettings(new TagOrderSettings { OrderId = "not-a-guid", Tags = "vip" })
             .ExecuteAsync();
 
@@ -31,6 +42,7 @@ public class TagOrderActionTests
         var result = await ActionTestHarness.For<TagOrderAction>()
             .WithService(_orderService.Object)
             .WithService(_uowProvider.Object)
+            .WithService(_storeAuthorizer.Object)
             .WithSettings(new TagOrderSettings { OrderId = Guid.NewGuid().ToString(), Tags = "" })
             .ExecuteAsync();
 

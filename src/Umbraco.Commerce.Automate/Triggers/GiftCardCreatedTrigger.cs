@@ -6,7 +6,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.giftCardCreated", "Gift Card Created",
     Description = "Fires when a gift card is created.",
     Group = "Commerce",
-    Icon = "icon-gift")]
+    Icon = "icon-gift",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class GiftCardCreatedTrigger
     : NotificationTriggerBase<StoreTriggerSettings, GiftCardCreatedTriggerOutput, CommerceGiftCardCreatedNotification>
 {

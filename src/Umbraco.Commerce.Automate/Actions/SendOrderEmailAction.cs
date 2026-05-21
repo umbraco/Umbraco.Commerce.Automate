@@ -1,5 +1,6 @@
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Core.Services;
 
 namespace Umbraco.Commerce.Automate.Actions;
@@ -10,20 +11,24 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.sendOrderEmail", "Send Order Email",
     Description = "Sends an email using a Commerce email template.",
     Group = "Commerce",
-    Icon = "icon-message")]
+    Icon = "icon-message",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class SendOrderEmailAction : ActionBase<SendOrderEmailSettings, SendOrderEmailOutput>
 {
     private readonly IOrderService _orderService;
     private readonly IEmailTemplateService _emailTemplateService;
+    private readonly ICommerceStoreAuthorizer _storeAuthorizer;
 
     public SendOrderEmailAction(
         ActionInfrastructure infrastructure,
         IOrderService orderService,
-        IEmailTemplateService emailTemplateService)
+        IEmailTemplateService emailTemplateService,
+        ICommerceStoreAuthorizer storeAuthorizer)
         : base(infrastructure)
     {
         _orderService = orderService;
         _emailTemplateService = emailTemplateService;
+        _storeAuthorizer = storeAuthorizer;
     }
 
     /// <inheritdoc />
@@ -51,6 +56,11 @@ public sealed class SendOrderEmailAction : ActionBase<SendOrderEmailSettings, Se
             return ActionResult.Failed(
                 new InvalidOperationException($"Order '{orderId}' not found."),
                 StepRunErrorCategory.Validation);
+        }
+
+        if (await _storeAuthorizer.AuthorizeStoreOrFailAsync(order.StoreId, cancellationToken) is { } storeAuthFailure)
+        {
+            return storeAuthFailure;
         }
 
         var template = await _emailTemplateService.GetEmailTemplateAsync(order.StoreId, settings.EmailTemplateAlias);

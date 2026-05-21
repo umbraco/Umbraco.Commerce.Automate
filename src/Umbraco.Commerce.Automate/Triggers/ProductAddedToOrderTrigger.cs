@@ -6,7 +6,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.productAddedToOrder", "Product Added to Order",
     Description = "Fires when a product is added to an order.",
     Group = "Commerce",
-    Icon = "icon-shopping-basket-alt-2")]
+    Icon = "icon-shopping-basket-alt-2",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class ProductAddedToOrderTrigger
     : NotificationTriggerBase<StoreTriggerSettings, ProductAddedToOrderTriggerOutput, CommerceOrderProductAddedNotification>
 {

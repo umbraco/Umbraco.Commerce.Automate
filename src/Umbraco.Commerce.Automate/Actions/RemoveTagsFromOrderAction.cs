@@ -1,5 +1,6 @@
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Common;
 using Umbraco.Commerce.Core.Services;
 
@@ -11,20 +12,24 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.removeTagsFromOrder", "Remove Tags from Order",
     Description = "Removes tags from a Commerce order.",
     Group = "Commerce",
-    Icon = "icon-tags")]
+    Icon = "icon-tags",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class RemoveTagsFromOrderAction : ActionBase<RemoveTagsFromOrderSettings, RemoveTagsFromOrderOutput>
 {
     private readonly IOrderService _orderService;
     private readonly IUnitOfWorkProvider _uowProvider;
+    private readonly ICommerceStoreAuthorizer _storeAuthorizer;
 
     public RemoveTagsFromOrderAction(
         ActionInfrastructure infrastructure,
         IOrderService orderService,
-        IUnitOfWorkProvider uowProvider)
+        IUnitOfWorkProvider uowProvider,
+        ICommerceStoreAuthorizer storeAuthorizer)
         : base(infrastructure)
     {
         _orderService = orderService;
         _uowProvider = uowProvider;
+        _storeAuthorizer = storeAuthorizer;
     }
 
     /// <inheritdoc />
@@ -54,6 +59,11 @@ public sealed class RemoveTagsFromOrderAction : ActionBase<RemoveTagsFromOrderSe
             return ActionResult.Failed(
                 new InvalidOperationException($"Order '{orderId}' not found."),
                 StepRunErrorCategory.Validation);
+        }
+
+        if (await _storeAuthorizer.AuthorizeStoreOrFailAsync(order.StoreId, cancellationToken) is { } storeAuthFailure)
+        {
+            return storeAuthFailure;
         }
 
         await _uowProvider.ExecuteAsync(async uow =>

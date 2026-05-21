@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Core.Services;
 using Umbraco.Commerce.Extensions;
 
@@ -12,17 +13,21 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.searchGiftCards", "Search Gift Cards",
     Description = "Searches Commerce gift cards and returns results as JSON.",
     Group = "Commerce",
-    Icon = "icon-search")]
+    Icon = "icon-search",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class SearchGiftCardsAction : ActionBase<SearchGiftCardsSettings, SearchGiftCardsOutput>
 {
     private readonly IGiftCardService _giftCardService;
+    private readonly ICommerceStoreAuthorizer _storeAuthorizer;
 
     public SearchGiftCardsAction(
         ActionInfrastructure infrastructure,
-        IGiftCardService giftCardService)
+        IGiftCardService giftCardService,
+        ICommerceStoreAuthorizer storeAuthorizer)
         : base(infrastructure)
     {
         _giftCardService = giftCardService;
+        _storeAuthorizer = storeAuthorizer;
     }
 
     /// <inheritdoc />
@@ -35,6 +40,11 @@ public sealed class SearchGiftCardsAction : ActionBase<SearchGiftCardsSettings, 
             return ActionResult.Failed(
                 new ArgumentException("A valid Store ID is required."),
                 StepRunErrorCategory.Validation);
+        }
+
+        if (await _storeAuthorizer.AuthorizeStoreOrFailAsync(storeId, cancellationToken) is { } storeAuthFailure)
+        {
+            return storeAuthFailure;
         }
 
         var pageSize = Math.Clamp(settings.PageSize > 0 ? settings.PageSize : 50, 1, 500);

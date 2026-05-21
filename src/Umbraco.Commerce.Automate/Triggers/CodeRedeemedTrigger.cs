@@ -6,7 +6,8 @@ namespace Umbraco.Commerce.Automate.Triggers;
 [Trigger("umbracoCommerce.codeRedeemed", "Discount/Gift Card Code Redeemed",
     Description = "Fires when a discount code or gift card is redeemed on an order.",
     Group = "Commerce",
-    Icon = "icon-tag")]
+    Icon = "icon-tag",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class CodeRedeemedTrigger
     : NotificationTriggerBase<StoreTriggerSettings, CodeRedeemedTriggerOutput, CommerceOrderCodeRedeemedNotification>
 {

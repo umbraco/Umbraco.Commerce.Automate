@@ -1,5 +1,6 @@
 using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Core.Runs;
+using Umbraco.Commerce.Automate.Security;
 using Umbraco.Commerce.Core.Services;
 using Umbraco.Commerce.Core.Templating;
 
@@ -11,23 +12,27 @@ namespace Umbraco.Commerce.Automate.Actions;
 [Action("umbracoCommerce.exportOrder", "Export Order",
     Description = "Renders a Commerce export template for an order (e.g., invoice, packing slip).",
     Group = "Commerce",
-    Icon = "icon-download")]
+    Icon = "icon-download",
+    RequiredSections = [Constants.Sections.Commerce])]
 public sealed class ExportOrderAction : ActionBase<ExportOrderSettings, ExportOrderOutput>
 {
     private readonly IOrderService _orderService;
     private readonly IExportTemplateService _exportTemplateService;
     private readonly ITemplateEngine _templateEngine;
+    private readonly ICommerceStoreAuthorizer _storeAuthorizer;
 
     public ExportOrderAction(
         ActionInfrastructure infrastructure,
         IOrderService orderService,
         IExportTemplateService exportTemplateService,
-        ITemplateEngine templateEngine)
+        ITemplateEngine templateEngine,
+        ICommerceStoreAuthorizer storeAuthorizer)
         : base(infrastructure)
     {
         _orderService = orderService;
         _exportTemplateService = exportTemplateService;
         _templateEngine = templateEngine;
+        _storeAuthorizer = storeAuthorizer;
     }
 
     /// <inheritdoc />
@@ -55,6 +60,11 @@ public sealed class ExportOrderAction : ActionBase<ExportOrderSettings, ExportOr
             return ActionResult.Failed(
                 new InvalidOperationException($"Order '{orderId}' not found."),
                 StepRunErrorCategory.Validation);
+        }
+
+        if (await _storeAuthorizer.AuthorizeStoreOrFailAsync(order.StoreId, cancellationToken) is { } storeAuthFailure)
+        {
+            return storeAuthFailure;
         }
 
         var template = await _exportTemplateService.GetExportTemplateAsync(order.StoreId, settings.TemplateAlias);
