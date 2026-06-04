@@ -19,7 +19,7 @@
 
   <!-- Umbraco Commerce -->
   <ItemGroup>
-    <PackageVersion Include="Umbraco.Commerce.Cms.Startup" Version="[17.0.0, 17.999.999)" />
+    <PackageVersion Include="Umbraco.Commerce.Cms.Startup" Version="[17.1.5, 17.999.999)" />
   </ItemGroup>
 
   <!-- Test dependencies -->
