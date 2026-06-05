@@ -1,3 +1,7 @@
+<p align="center">
+  <img alt="Umbraco Automate" src="https://raw.githubusercontent.com/umbraco/Umbraco.Commerce.Automate/main/assets/logo-128.png" width="128">
+</p>
+
 # Umbraco.Commerce.Automate
 
 Umbraco Commerce triggers and actions for [Umbraco Automate](https://umbraco.com/products/umbraco-automate/).
