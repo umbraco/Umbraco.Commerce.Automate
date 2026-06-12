@@ -10,6 +10,7 @@
     "LicenseTypes": ["Free"],
     "DocumentationUrl": "https://github.com/umbraco/Umbraco.Commerce.Automate",
     "IssueTrackerUrl": "https://github.com/umbraco/Umbraco.Commerce.Automate/issues",
+    "IsSubPackageOf": "Umbraco.Commerce",
     "PackageType": "Package",
     "PackagesByAuthor": [
         "Umbraco.Forms",
