@@ -28,9 +28,9 @@ No further wiring is required — the composer is auto-discovered by Umbraco's c
 ## Requirements
 
 - .NET 10.0
-- Umbraco CMS 17.x
-- Umbraco Commerce 17.x
-- Umbraco.Automate 17.0+
+- Umbraco CMS 18.x
+- Umbraco Commerce 18.x
+- Umbraco.Automate 18.0+
 
 ## Triggers
 
