@@ -52,9 +52,10 @@ public class CommerceStoreAuthorizerTests
     [Fact]
     public async Task AuthorizeStoreAsync_SuperUser_BypassesAllowlist()
     {
-        // The super user (id -1) also bypasses — same convention as Umbraco's section /
-        // start-node checks.
-        var superUser = BuildUser(groupAlias: "editor", id: CmsConstants.Security.SuperUserId);
+        // The super user also bypasses — same convention as Umbraco's section /
+        // start-node checks. As of v18, IUser.IsSuper() is keyed off the user's Key
+        // (SuperUserKey) rather than the integer id (-1).
+        var superUser = BuildUser(groupAlias: "editor", key: CmsConstants.Security.SuperUserKey);
 
         var result = await _sut.AuthorizeStoreAsync(superUser, Guid.NewGuid(), CancellationToken.None);
 
@@ -77,13 +78,14 @@ public class CommerceStoreAuthorizerTests
         result.FailureReason.ShouldContain(storeId.ToString());
     }
 
-    private static IUser BuildUser(string groupAlias, int id = 42)
+    private static IUser BuildUser(string groupAlias, int id = 42, Guid? key = null)
     {
         var group = new Mock<IReadOnlyUserGroup>();
         group.SetupGet(g => g.Alias).Returns(groupAlias);
 
         var user = new Mock<IUser>();
         user.SetupGet(u => u.Id).Returns(id);
+        user.SetupGet(u => u.Key).Returns(key ?? Guid.NewGuid());
         user.SetupGet(u => u.Groups).Returns(new[] { group.Object });
         return user.Object;
     }
