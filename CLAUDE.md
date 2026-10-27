@@ -248,7 +248,7 @@ expecting them to affect `main` — it's a separate checkout of the `support/17.
 the month (e.g. `release/2026.07.1` for a v18 release and `release/2026.07.2` for a v17 release in the
 same month — not independent per-line counters). `azure-pipelines.yml` triggers on push to
 `release/*`/`hotfix/*`/`feature/*` and, via `.devops/build-and-pack.yml` + `.devops/test.yml`, runs
-**Build → Test only** (no Publish stage). Publishing the packed `.nupkg` to the MyGet feed is a
+**Build → Test**, plus the SBOM stage on `release/*`/`hotfix/*` (no Publish stage). Publishing the packed `.nupkg` to the MyGet feed is a
 **manual** step a human does after CI is green. After that's confirmed, the release branch is merged
 `--no-ff` into its target, tagged `release-<version>` (e.g. `release-18.0.0`), a GitHub Release is cut
 with `gh release create <tag> --target <branch> --generate-notes`, `version.json` is patch-bumped on
@@ -322,9 +322,11 @@ thing to a contribution guide.
 - Don't touch `.claude/worktrees/support-17.x` as part of a `main`-focused task unless the task is
   explicitly about the v17 line — it's a live worktree of a different branch, not a copy/reference
   directory.
-- There is no CI you can trigger locally beyond `dotnet build`/`dotnet test`; don't attempt to simulate
-  the SBOM/cdxgen step in `.devops/build-and-pack.yml` — it requires network access and DT_API_KEY/DT_BASE_URL
-  secrets that aren't available outside Azure DevOps.
+- There is no CI you can trigger locally beyond `dotnet build`/`dotnet test`. The SBOM stage comes from
+  the shared `umbraco/Umbraco.Build` repo (`devops/stages/sbom.yml`): it runs `umbraco-sbom` with a
+  license policy check on `release/*` and `hotfix/*` builds only, and uploads to Dependency-Track as
+  `Umbraco.Commerce.Automate v<major>`. To check licenses on another branch, queue a run with
+  **Generate SBOM and check licenses** ticked (no upload).
 
 ## Project-Specific Notes
 
