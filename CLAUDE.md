@@ -195,7 +195,8 @@ There is no lint/format script and no `.editorconfig` beyond what ships with the
   store) carries a comment explaining *why* that branch exists — see
   `tests/.../Security/CommerceStoreAuthorizerTests.cs`. Follow that convention for new authorization
   tests; a bare assertion without the "why" is easy to regress silently later.
-- CI runs the test job on a Windows / Linux / macOS matrix (`.devops/test.yml`) — don't rely on
+- CI runs the tests on a Windows / Linux / macOS matrix for `main`, `release/*` and `hotfix/*` builds
+  (Linux only for PRs and feature branches; the shared Umbraco.Build template's Test stage) — don't rely on
   Windows-only path or culture behavior. `IssueGiftCardAction` deliberately parses dates with
   `DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal` and `CultureInfo.InvariantCulture`
   for exactly this reason (src/Umbraco.Commerce.Automate/Actions/IssueGiftCardAction.cs:71).
@@ -247,9 +248,12 @@ expecting them to affect `main` — it's a separate checkout of the `support/17.
 **Releases:** cut as `release/YYYY.MM.N` branches, where `N` is a *shared counter across both lines* for
 the month (e.g. `release/2026.07.1` for a v18 release and `release/2026.07.2` for a v17 release in the
 same month — not independent per-line counters). `azure-pipelines.yml` triggers on push to
-`release/*`/`hotfix/*`/`feature/*` and, via `.devops/build-and-pack.yml` + `.devops/test.yml`, runs
-**Build → Test**, plus the SBOM stage on `release/*`/`hotfix/*` (no Publish stage). Publishing the packed `.nupkg` to the MyGet feed is a
-**manual** step a human does after CI is green. After that's confirmed, the release branch is merged
+`release/*`/`hotfix/*`/`feature/*` and extends the shared `umbraco/Umbraco.Build` template
+(`devops/templates/azure-pipelines-template.yml`): **BuildAndPack → Test**, plus the SBOM stage on
+`release/*`/`hotfix/*`. On `release/*`/`hotfix/*` only, **Prerelease** pushes the package to MyGet and
+**Release** pushes it to NuGet.org after a manual approval in the run; every other branch skips both
+(`main` is a public release in `version.json` too, so `azure-pipelines.yml` gates them by branch). After
+both have published, the release branch is merged
 `--no-ff` into its target, tagged `release-<version>` (e.g. `release-18.0.0`), a GitHub Release is cut
 with `gh release create <tag> --target <branch> --generate-notes`, `version.json` is patch-bumped on
 the target branch for the next nightly cycle, and the release branch is deleted.
@@ -258,7 +262,7 @@ Two Claude Code skills automate exactly this and should be used rather than rein
 - `.claude/skills/release-management/SKILL.md` — cuts the release branch, bumps
   `Directory.Packages.props` Automate ranges + `version.json` to the target major's stable floor.
 - `.claude/skills/post-release-cleanup/SKILL.md` — merge-back, tag, GitHub Release, next-cycle version
-  bump, branch deletion. Run only after the manual MyGet publish is confirmed.
+  bump, branch deletion. Run only after the release build has published to MyGet and NuGet.org.
 
 **Package versioning mechanics:** `Directory.Packages.props` pins `Umbraco.Automate` /
 `Umbraco.Automate.Core` / `Umbraco.Automate.Testing` to `[18.0.0, 18.999.999)` on `main` (17.x
