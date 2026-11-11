@@ -67,4 +67,4 @@ extends:
     sbom_dt_variable_group: dependency-track
     nuget_nightly_service_connection: Myget - Umbraco Nightly
     nuget_prereleases_service_connection: Myget - Umbraco Prereleases
-    nuget_service_connection: NuGet (Umbraco.*.Automate only)
+    nuget_service_connection: Umbraco NuGet
