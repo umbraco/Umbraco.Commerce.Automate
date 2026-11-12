@@ -1,6 +1,6 @@
 ---
 name: release-management
-description: Creates a release branch for this Umbraco.Automate satellite - bumps the Directory.Packages.props Automate package ranges and version.json to a stable version for the chosen Umbraco CMS major line. Use when preparing a new release.
+description: Creates a release branch for this Umbraco.Automate satellite - bumps the Directory.Packages.props Automate package ranges and version.json to a release version (stable, or a pre-release while a CMS major is in pre-release) for the chosen Umbraco CMS major line. Use when preparing a new release.
 allowed-tools: Bash, Read, Edit, AskUserQuestion
 ---
 
@@ -12,10 +12,11 @@ so there is no version-bump analysis, cascade, or manifest generation to do.
 
 ## Branch model
 
-- `main` = current CMS major line (**v18**)
-- `support/17.x` = previous CMS major line (**v17**)
+- `main` = the **v18** line (at v19 GA, `main` is expected to become the v19 line; not decided yet)
+- `v19/dev` = the **v19** line while CMS 19 is in pre-release. Pushes to it build but don't publish.
+- `support/17.x` = the **v17** line
 
-Releases are cut as `release/YYYY.MM.N` branches. `N` is a single counter shared across **both** lines
+Releases are cut as `release/YYYY.MM.N` branches. `N` is a single counter shared across **all** lines
 in a given month (e.g. `release/2026.07.1` for v18, `release/2026.07.2` for v17 in the same month) —
 not a separate counter per line.
 
@@ -24,6 +25,7 @@ not a separate counter per line.
 1. **Ask which line to release** using AskUserQuestion:
    - v18 (from `main`)
    - v17 (from `support/17.x`)
+   - v19 pre-release (from `v19/dev`) — see "Pre-release major" below
 
 2. **Fetch latest state:**
    ```bash
@@ -32,12 +34,12 @@ not a separate counter per line.
 
 3. **Determine the next release number for the current month.** Release branches are deleted after
    merge-back (see `/post-release-cleanup`), so there is no live `release/*` branch or date-based tag
-   to list. Instead scan merge commit messages on both lines for this month's releases:
+   to list. Instead scan merge commit messages on all lines for this month's releases:
    ```bash
-   git log origin/main origin/support/17.x --merges --oneline \
+   git log origin/main origin/support/17.x origin/v19/dev --merges --oneline \
      --grep="Merge release/$(date +%Y.%m)\." -E
    ```
-   Find the highest `N` used this month across both lines and use `N+1`. If none this month, `N=1`.
+   Find the highest `N` used this month across all lines and use `N+1`. If none this month, `N=1`.
 
 4. **Confirm the branch name** with the user (default: computed name, e.g. `release/2026.07.3`).
 
@@ -45,6 +47,7 @@ not a separate counter per line.
    ```bash
    git checkout -b release/<name> origin/main            # v18
    git checkout -b release/<name> origin/support/17.x    # v17
+   git checkout -b release/<name> origin/v19/dev         # v19 pre-release
    ```
 
 6. **Bump `Directory.Packages.props`:** every `PackageVersion` for `Umbraco.Automate`, `.Core`, or
@@ -74,6 +77,22 @@ not a separate counter per line.
    - Approve "Wait for manual approval" in the run's Release stage to push to NuGet.org
    - Once both publish stages are green, run /post-release-cleanup to merge back, tag, and create the GitHub Release
    ```
+
+## Pre-release major (v19)
+
+Use this path when the target CMS major is still in pre-release. Steps 1-5 and 8-9 are the same, with
+the base branch `origin/v19/dev`. Steps 6 and 7 change:
+
+- **Automate range** → `[<floor>, 19.999.999)`, where `<floor>` is an Automate pre-release that exists
+  on the feed (the one you are building against), so it is a pre-release, not `19.0.0`.
+- **`version.json`** keeps its pre-release suffix: set it to `<version>`, this package's own next
+  unpublished pre-release (usually the one already in the file). Do not drop the suffix; drop it only
+  when releasing the stable major, using the normal v18/v17 steps.
+- **The version must not already be published.** A `release/*` branch is a public build, so it
+  produces exactly the `version.json` version. Check the feed (MyGet / NuGet.org) first. After each
+  pre-release, `/post-release-cleanup` moves `version.json` on `v19/dev` to the next pre-release name.
+- Commit message: `build(deps): Release v19 pre-release <version> against Umbraco.Automate <floor>`.
+- **Product entries** (e.g. Engage, Commerce) are left alone, as for v18/v17.
 
 ## Notes
 
