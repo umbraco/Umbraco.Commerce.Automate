@@ -13,7 +13,7 @@ Example: tag an order when a discount code is redeemed, or notify a channel when
 
 ### Requirements
 
-- Umbraco CMS 17.x
-- Umbraco Commerce 17.x
-- Umbraco.Automate 17.0+
-- .NET 10.0
+- Umbraco CMS 19
+- Umbraco Commerce 19
+- Umbraco.Automate 19
+- .NET 11.0

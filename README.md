@@ -19,18 +19,23 @@ Umbraco.Commerce.Automate is a provider package that connects [Umbraco Commerce]
 
 ## Installation
 
+Version 19 is a pre-release. Pre-releases are published to the Umbraco prereleases feed, not nuget.org. Add the feed once, then install with `--prerelease`:
+
 ```bash
-dotnet add package Umbraco.Commerce.Automate
+dotnet nuget add source https://www.myget.org/F/umbracoprereleases/api/v3/index.json --name "Umbraco Prereleases"
+dotnet add package Umbraco.Commerce.Automate --prerelease
 ```
+
+If your `nuget.config` uses package source mapping, map `Umbraco.*` to that feed too. Version 18 is on nuget.org: `dotnet add package Umbraco.Commerce.Automate`.
 
 No further wiring is required — the composer is auto-discovered by Umbraco's composition system.
 
 ## Requirements
 
-- .NET 10.0
-- Umbraco CMS 18.x
-- Umbraco Commerce 18.x
-- Umbraco.Automate 18.0+
+- .NET 11.0
+- Umbraco CMS 19
+- Umbraco Commerce 19
+- Umbraco.Automate 19
 
 ## Triggers
 
@@ -146,7 +151,7 @@ The demo is not committed to this repo. To scaffold one locally:
 ./setup-demo.ps1
 ```
 
-This clones the official [Umbraco Commerce demo store](https://github.com/umbraco/Umbraco.Commerce.DemoStore) into `./demo`, references the local `Umbraco.Commerce.Automate`, and generates `Umbraco.Commerce.Automate.local.slnx` combining src + tests + demo. Run `./setup-demo.ps1 -?` for full options.
+This clones the official [Umbraco Commerce demo store](https://github.com/umbraco/Umbraco.Commerce.DemoStore) (by default branch `v19/topic/cms-19-rc1`, which restores on CMS 19 rc1) into `./demo`, references the local `Umbraco.Commerce.Automate`, and generates `Umbraco.Commerce.Automate.local.slnx` combining src + tests + demo. Pass `-Branch` to use another demo store branch. Run `./setup-demo.ps1 -?` for full options.
 
 ## License
 
