@@ -151,7 +151,7 @@ The demo is not committed to this repo. To scaffold one locally:
 ./setup-demo.ps1
 ```
 
-This clones the official [Umbraco Commerce demo store](https://github.com/umbraco/Umbraco.Commerce.DemoStore) (by default branch `v19/topic/cms-19-rc1`, which restores on CMS 19 rc1) into `./demo`, references the local `Umbraco.Commerce.Automate`, and generates `Umbraco.Commerce.Automate.local.slnx` combining src + tests + demo. Pass `-Branch` to use another demo store branch. Run `./setup-demo.ps1 -?` for full options.
+This clones the official [Umbraco Commerce demo store](https://github.com/umbraco/Umbraco.Commerce.DemoStore) (by default branch `release/19.0.0`, which pins CMS 19 rc1) into `./demo`, references the local `Umbraco.Commerce.Automate`, and generates `Umbraco.Commerce.Automate.local.slnx` combining src + tests + demo. Pass `-Branch` to use another demo store branch. Run `./setup-demo.ps1 -?` for full options.
 
 ## License
 

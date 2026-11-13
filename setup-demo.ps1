@@ -20,7 +20,7 @@
     Git URL of the demo store. Defaults to the official Umbraco repo.
 
 .PARAMETER Branch
-    Branch, tag, or commit to check out. Defaults to "v19/topic/cms-19-rc1".
+    Branch, tag, or commit to check out. Defaults to "release/19.0.0".
 
 .PARAMETER DemoSubPath
     Path within the cloned repo containing the demo solution. Defaults to the
@@ -43,8 +43,8 @@
 param(
     [string]$Path = "demo",
     [string]$Repo = "https://github.com/umbraco/Umbraco.Commerce.DemoStore.git",
-    # The DemoStore's release/19.0.0 pins the removed Commerce 19.0.0-beta.1, so use the rc1 topic branch that restores today. Move to the DemoStore's v19 trunk once that restores.
-    [string]$Branch = "v19/topic/cms-19-rc1",
+    # The DemoStore has no v19 topic or dev branch: release/19.0.0 is its v19 line (pins CMS and Commerce rc1). Move to its v19 trunk once there is one.
+    [string]$Branch = "release/19.0.0",
     [string]$DemoSubPath = "",
     [string]$WebProject,
     [switch]$Force

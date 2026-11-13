@@ -160,7 +160,7 @@ Scaffold a runnable demo site (clones the official Commerce demo store, git-igno
 combined local solution):
 
 ```pwsh
-./setup-demo.ps1          # -Force to wipe and re-clone, -Branch to pick a demo store branch (default: the v19 rc1 topic branch)
+./setup-demo.ps1          # -Force to wipe and re-clone, -Branch to pick a demo store branch (default: release/19.0.0)
 ```
 
 This produces `demo/` and `Umbraco.Commerce.Automate.local.slnx` (both git-ignored — see `.gitignore`).
