@@ -37,7 +37,7 @@
     ./setup-demo.ps1
 
 .EXAMPLE
-    ./setup-demo.ps1 -Branch v17/dev -Force
+    ./setup-demo.ps1 -Branch support/17.x -Force
 #>
 [CmdletBinding()]
 param(

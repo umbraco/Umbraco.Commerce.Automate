@@ -10,7 +10,7 @@ payment, tag an order, issue a gift card, ...).
 - Package: `Umbraco.Commerce.Automate` (NuGet), self-registering — no manual wiring required by consumers
 - Requires: `main` (v18) needs .NET 10, Umbraco CMS 18.x, Umbraco Commerce 18.x, Umbraco.Automate 18.0+.
   `v19/dev` (v19) needs .NET 11, Umbraco CMS 19 (currently 19.0.0-rc1), Umbraco Commerce `[19.0.0-rc.1, 19.999.999)`,
-  Umbraco.Automate `[19.0.0-beta, 19.999.999)`. See Teamwork/Workflow for the branch model and the v17 line.
+  Umbraco.Automate `[19.0.0-rc1, 19.999.999)`. See Teamwork/Workflow for the branch model and the v17 line.
 
 This is a small, single-product repo: one library project, one test project, no frontend, no database
 migrations of its own. Read this file in full before making changes — it is short by design.
@@ -243,10 +243,11 @@ does not add a try/catch around Commerce SDK calls.
 
 **Branches:**
 - `main` = the v18 line (`version.json` → `18.0.1`).
-- `v19/dev` = the v19 line while CMS 19 is in pre-release (CMS 19.0.0-rc1, `version.json` → `19.0.0-beta`).
-  Long-lived like `main` and `support/17.x`: pushes to it build but never publish. Each pre-release (beta,
-  rc) is cut from `v19/dev` as `release/YYYY.MM.N`, published from that branch, then merged back into
-  `v19/dev`. At v19 GA, `main` is expected to become the v19 line (not decided yet).
+- `v19/dev` = the v19 line while CMS 19 is in pre-release (CMS 19.0.0-rc1, `version.json` → `19.0.0-rc1`).
+  Long-lived like `main` and `support/17.x`: pushes to it build but never publish. Each pre-release
+  (`19.0.0-rc1`, `-rc2`, ...) is cut from `v19/dev` as `release/YYYY.MM.N`, published from that branch to
+  MyGet and NuGet.org, then merged back into `v19/dev`. When CMS 19 is GA the package drops the `-rc`
+  label and releases as `19.0.0`. At v19 GA, `main` is expected to become the v19 line (not decided yet).
 - `support/17.x` = the v17 line (checked out as a persistent worktree at `.claude/worktrees/support-17.x`,
   `version.json` → `17.0.1`). Do not edit files under that worktree path expecting them to affect `main` —
   it's a separate checkout of the `support/17.x` branch.
@@ -257,37 +258,43 @@ same month — not independent per-line counters). `azure-pipelines.yml` trigger
 `main`/`dev`/`v19/dev`/`release/*`/`hotfix/*`/`feature/*` and extends the shared `umbraco/Umbraco.Build` template
 (`devops/templates/azure-pipelines-template.yml`): **BuildAndPack → Test**, plus the SBOM stage on
 `release/*`/`hotfix/*`. On `release/*`/`hotfix/*` only, **Prerelease** pushes the package to MyGet and
-**Release** pushes it to NuGet.org after a manual approval in the run; every other branch skips both,
+then **Release** pushes it to NuGet.org after a manual approval in the run (a v19 `-rcN` takes the same
+path, so it lands on both feeds); every other branch skips both,
 including `v19/dev` (`main` is a public release in `version.json` too, so `azure-pipelines.yml` gates them by branch). After
 both have published, the release branch is merged
-`--no-ff` into its target, tagged `release-<version>` (e.g. `release-18.0.0`), a GitHub Release is cut
-with `gh release create <tag> --target <branch> --generate-notes`, `version.json` is patch-bumped on
-the target branch for the next nightly cycle, and the release branch is deleted.
+`--no-ff` into its target, tagged `release-<version>` (e.g. `release-18.0.0`, `release-19.0.0-rc1`), a GitHub Release is cut
+with `gh release create <tag> --target <branch> --generate-notes` (plus `--prerelease` for an `-rcN`),
+`version.json` is bumped on the target branch for the next cycle (patch bump for a stable release,
+next `-rcN` for a pre-release), and the release branch is deleted.
 
 Two Claude Code skills automate exactly this and should be used rather than reinvented:
 - `.claude/skills/release-management/SKILL.md` — cuts the release branch, bumps
   `Directory.Packages.props` Automate ranges + `version.json` to the target major's stable floor. For a v19
-  pre-release it cuts from `v19/dev`, keeps the Automate range on a pre-release floor that exists on the
-  feed and `version.json` on a not-yet-published pre-release version.
+  pre-release it cuts from `v19/dev`, keeps the Automate range on a pre-release floor that exists on
+  nuget.org and `version.json` on a not-yet-published `-rcN` version.
 - `.claude/skills/post-release-cleanup/SKILL.md` — merge-back, tag, GitHub Release, next-cycle version
   bump, branch deletion. Run only after the release build has published to MyGet and NuGet.org. It merges
-  back into the release's own line, bumps `version.json` to the next pre-release name after a pre-release
-  (e.g. `19.0.0-beta` → `19.0.0-beta.2`), and never deletes `v19/dev`. Pre-release nightlies sort below
-  the shipped pre-release, so don't rely on the suffix bump for that.
+  back into the release's own line (`v19/dev` for a v19 pre-release, never `main`), bumps `version.json`
+  to the next pre-release after a pre-release (`19.0.0-rc1` → `19.0.0-rc2`, or `19.0.0` once CMS 19 is
+  GA), creates the GitHub Release with `--prerelease` for an `-rcN`, and never deletes `v19/dev`.
+  `v19/dev` isn't in `publicReleaseRefSpec`, so its builds pack as `19.0.0--rc2.preview.<height>.g<sha>`
+  (format from Umbraco.GitVersioning.Extensions; read `PackageVersion`, not NBGV's
+  `NuGetPackageVersion`). That sorts below every shipped `-rcN`, including the previous one, and doesn't
+  satisfy a `[19.0.0-rc1, …)` floor. A `release/*` build packs the bare `version.json` version.
 
 **Package versioning mechanics:** `Directory.Packages.props` pins `Umbraco.Automate` /
 `Umbraco.Automate.Core` / `Umbraco.Automate.Testing` to `[18.0.0, 18.999.999)` on `main`,
-`[19.0.0-beta, 19.999.999)` on `v19/dev` (17.x equivalents on `support/17.x`). NuGet resolves a range to its **floor**, so this range is what pulls the
+`[19.0.0-rc1, 19.999.999)` on `v19/dev` (17.x equivalents on `support/17.x`). At v19 GA the v19
+floors move to the stable `[19.0.0, 19.999.999)`. NuGet resolves a range to its **floor**, so this range is what pulls the
 stable `18.0.0`/`17.0.0` package rather than a prerelease — a floating `18.0.0-*` would instead resolve
 to the *highest prerelease*, which is why release-management always writes an explicit range, not a
 floating version. `Umbraco.Commerce.Cms.Startup`'s range is managed independently — release-management
 does not touch it.
 
-**NuGet sources** (`nuget.config`): nuget.org + Umbraco Nightly + Umbraco Prereleases (both myget.org),
-with package source mapping restricting `Umbraco`/`Umbraco.*` to all three Umbraco-aware sources and
-everything else to nuget.org only. `Umbraco.Cms` and `Umbraco.Cms.*` are mapped to Umbraco Prereleases
-only while CMS 19 is in pre-release (the rc1 build is only on that feed; remove those two lines once CMS 19
-is stable on nuget.org — explained in a `nuget.config` comment).
+**NuGet sources** (`nuget.config`) on `v19/dev`: nuget.org only. CMS, Licenses, Automate and Commerce 19
+RCs are all on nuget.org, so there's no MyGet source. `<packageSourceMapping>` maps `*` to nuget.org, and its `<clear />` stops NuGet merging mappings from a parent checkout's `nuget.config` (a worktree under
+`.claude/worktrees` sits inside another line's checkout). `main` and `support/17.x` keep their own
+`nuget.config` files, so check the file on the branch you're on.
 
 **PR target:** `azure-pipelines.yml`'s `pr.branches.include` is `main`, `dev` and `v19/dev` — treat those as the
 long-lived integration branches for pull requests (`support/17.x` is not listed as a PR target;
