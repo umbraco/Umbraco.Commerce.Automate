@@ -9,8 +9,8 @@ payment, tag an order, issue a gift card, ...).
 - Azure DevOps: project "Umbraco Commerce", pipeline definition **724**
 - Package: `Umbraco.Commerce.Automate` (NuGet), self-registering — no manual wiring required by consumers
 - Requires: `main` (v18) needs .NET 10, Umbraco CMS 18.x, Umbraco Commerce 18.x, Umbraco.Automate 18.0+.
-  `v19/dev` (v19) needs .NET 11, Umbraco CMS 19 (currently 19.0.0-rc1), Umbraco Commerce `[19.0.0-rc.1, 19.999.999)`,
-  Umbraco.Automate `[19.0.0-rc1, 19.999.999)`. See Teamwork/Workflow for the branch model and the v17 line.
+  `v19/dev` (v19) needs .NET 11, Umbraco CMS 19 (a pre-release for now), and Umbraco Commerce and
+  Umbraco.Automate 19 (exact ranges in `Directory.Packages.props`). See Teamwork/Workflow for the branch model and the v17 line.
 
 This is a small, single-product repo: one library project, one test project, no frontend, no database
 migrations of its own. Read this file in full before making changes — it is short by design.
@@ -160,7 +160,7 @@ Scaffold a runnable demo site (clones the official Commerce demo store, git-igno
 combined local solution):
 
 ```pwsh
-./setup-demo.ps1          # -Force to wipe and re-clone, -Branch to pick a demo store branch (default: release/19.0.0)
+./setup-demo.ps1          # -Force to wipe and re-clone, -Branch to pick a demo store branch (default branch: see `setup-demo.ps1`)
 ```
 
 This produces `demo/` and `Umbraco.Commerce.Automate.local.slnx` (both git-ignored — see `.gitignore`).
@@ -246,7 +246,7 @@ does not add a try/catch around Commerce SDK calls.
 - `v19/dev` = the v19 line while CMS 19 is in pre-release (CMS 19.0.0-rc1, `version.json` → `19.0.0-rc1`).
   Long-lived like `main` and `support/17.x`: pushes to it build but never publish. Each pre-release
   (`19.0.0-rc1`, `-rc2`, ...) is cut from `v19/dev` as `release/YYYY.MM.N`, published from that branch to
-  MyGet and NuGet.org, then merged back into `v19/dev`. When CMS 19 is GA the package drops the `-rc`
+  MyGet and NuGet.org, then merged back into `v19/dev`. When CMS 19, Automate 19 and Commerce 19 are all stable the package drops the `-rc`
   label and releases as `19.0.0`. At v19 GA, `main` is expected to become the v19 line (not decided yet).
 - `support/17.x` = the v17 line (checked out as a persistent worktree at `.claude/worktrees/support-17.x`,
   `version.json` → `17.0.1`). Do not edit files under that worktree path expecting them to affect `main` —
@@ -275,17 +275,15 @@ Two Claude Code skills automate exactly this and should be used rather than rein
 - `.claude/skills/post-release-cleanup/SKILL.md` — merge-back, tag, GitHub Release, next-cycle version
   bump, branch deletion. Run only after the release build has published to MyGet and NuGet.org. It merges
   back into the release's own line (`v19/dev` for a v19 pre-release, never `main`), bumps `version.json`
-  to the next pre-release after a pre-release (`19.0.0-rc1` → `19.0.0-rc2`, or `19.0.0` once CMS 19 is
-  GA), creates the GitHub Release with `--prerelease` for an `-rcN`, and never deletes `v19/dev`.
-  `v19/dev` isn't in `publicReleaseRefSpec`, so its builds pack as `19.0.0--rc2.preview.<height>.g<sha>`
-  (format from Umbraco.GitVersioning.Extensions; read `PackageVersion`, not NBGV's
-  `NuGetPackageVersion`). That sorts below every shipped `-rcN`, including the previous one, and doesn't
-  satisfy a `[19.0.0-rc1, …)` floor. A `release/*` build packs the bare `version.json` version.
+  to the next pre-release after a pre-release (`19.0.0-rc1` → `19.0.0-rc2`, or `19.0.0` once CMS 19, Automate 19 and Commerce 19
+  are all stable), creates the GitHub Release with `--prerelease` for an `-rcN`, and never deletes `v19/dev`.
+  For the version format of `v19/dev` builds (they sort below every shipped `-rcN`), see step 9 of
+  `post-release-cleanup`.
 
 **Package versioning mechanics:** `Directory.Packages.props` pins `Umbraco.Automate` /
-`Umbraco.Automate.Core` / `Umbraco.Automate.Testing` to `[18.0.0, 18.999.999)` on `main`,
-`[19.0.0-rc1, 19.999.999)` on `v19/dev` (17.x equivalents on `support/17.x`). At v19 GA the v19
-floors move to the stable `[19.0.0, 19.999.999)`. NuGet resolves a range to its **floor**, so this range is what pulls the
+`Umbraco.Automate.Core` / `Umbraco.Automate.Testing` to a range per line (see `Directory.Packages.props` on the branch you're on;
+17.x has its own on `support/17.x`). At v19 GA the v19 floors move to stable (see
+`release-management`). NuGet resolves a range to its **floor**, so this range is what pulls the
 stable `18.0.0`/`17.0.0` package rather than a prerelease — a floating `18.0.0-*` would instead resolve
 to the *highest prerelease*, which is why release-management always writes an explicit range, not a
 floating version. `Umbraco.Commerce.Cms.Startup`'s range is managed independently — release-management
